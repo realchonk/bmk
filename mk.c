@@ -18,7 +18,7 @@
 #include <fcntl.h>
 #include <time.h>
 #include <err.h>
-#include "make.h"
+#include "mk.h"
 
 #define new(T) ((T *)calloc (1, sizeof (T)))
 #define MAKEFILE "MyMakefile"
