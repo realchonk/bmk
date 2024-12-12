@@ -21,7 +21,7 @@
 #include "mk.h"
 
 #define new(T) ((T *)calloc (1, sizeof (T)))
-#define MAKEFILE "MyMakefile"
+#define MAKEFILE "Mkfile"
 #define SHELL "sh"
 
 static char *cpath, *objdir = NULL;
