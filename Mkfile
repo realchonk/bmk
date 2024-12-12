@@ -21,6 +21,10 @@ all: mk
 clean:
 	rm -f ${.OBJDIR}/mk
 
+## Remove even more files
+distclean: clean
+	rm -f xmk
+
 ## Install mk into ${PREFIX}
 install: mk
 	mkdir -p ${DESTDIR}${PREFIX}/bin
