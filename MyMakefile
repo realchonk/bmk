@@ -1,0 +1,30 @@
+## C Compiler
+CC ??= cc
+
+## C Compiler Flags
+CFLAGS ?= -O2
+CFLAGS += -ansi -Wall -Wextra -Wno-deprecated-non-prototype -Wno-implicit-int
+
+## C Preprocessor Flags
+CPPFLAGS ?= -D_GNU_SOURCE -D_BSD_SOURCE
+
+## Linker Flags
+LDFLAGS ?=
+
+## Installation directory
+PREFIX ?= /usr/local
+
+## Build mk
+all: mk
+
+## Remove build artifacts
+clean:
+	rm -f ${.OBJDIR}/mk
+
+## Install mk into ${PREFIX}
+install: mk
+	mkdir -p ${DESTDIR}${PREFIX}/bin
+	cp -f $< ${DESTDIR}${PREFIX}/bin/
+
+mk: mk.c mk.h
+	${CC} -o $@ $< ${CFLAGS} ${CPPFLAGS} ${LDFLAGS}
