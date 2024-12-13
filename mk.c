@@ -682,11 +682,21 @@ char *name;
 
 /* MACRO EXPANSION */
 
+#define MAX_EXPAND_DEPTH 64
 struct expand_ctx {
 	char *target;
 	struct dep *deps, *infdeps;
 	struct dep *dep0;
-	int free_target;
+	int free_target, depth;
+};
+
+static struct expand_ctx ctx_null = {
+	.target = NULL,
+	.deps = NULL,
+	.infdeps = NULL,
+	.dep0 = NULL,
+	.free_target = 0,
+	.depth = 0,
 };
 
 ectx_init (ctx, target, dep0, deps, infdeps)
@@ -700,7 +710,15 @@ struct dep *deps, *infdeps;
 	ctx->deps = deps;
 	ctx->infdeps = infdeps;
 	ctx->free_target = 0;
+	ctx->depth = 0;
 	return 0;
+}
+
+struct expand_ctx *
+ectx_null ()
+{
+	ctx_null.depth = 0;
+	return &ctx_null;
 }
 
 ectx_file (ctx, sc, f)
@@ -726,6 +744,7 @@ struct file *f;
 	ctx->infdeps = f->inf != NULL ? f->inf->dhead : NULL;
 	if (ctx->dep0 == NULL && ctx->infdeps != NULL)
 		ctx->dep0 = ctx->infdeps;
+	ctx->depth = 0;
 
 	return 0;
 }
@@ -922,6 +941,10 @@ struct expand_ctx *ctx;
 	struct filetime ft;
 	char *orig = *s, *t, *u, *v, *w, *pattern;
 	str_t name, old, new;
+
+	++ctx->depth;
+	if (ctx->depth >= MAX_EXPAND_DEPTH)
+		errx (1, "%s: reached maximum expansion depth", path_to_str (prefix));
 
 	/* parse macro name */
 	str_new (&name);
@@ -1143,6 +1166,7 @@ ret:
 	++*s;
 	str_free (&old);
 	free (v);
+	--ctx->depth;
 	return 0;
 invalid:
 	errx (1, "%s: invalid macro expansion: '${%s', s = '%s'", sc_path_str (sc), orig, *s);
@@ -1260,6 +1284,9 @@ char *s;
 struct expand_ctx *ctx;
 {
 	str_t out;
+
+	if (ctx == NULL)
+		ctx = ectx_null ();
 
 	str_new (&out);
 	expand_into (&out, sc, prefix, s, ctx);
@@ -2354,7 +2381,7 @@ char *path;
 
 	file = fopen (path, "r");
 	if (file == NULL)
-		err (1, "open(\"%s\")", path);
+		err (1, "fopen(\"%s\")", path);
 
 	if (sc->dir == NULL) {
 		sc->dir = new (struct directory);
