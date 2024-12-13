@@ -1473,7 +1473,7 @@ str_t *val;
 		while (**s != '"') {
 			if (**s == '$') {
 				++*s;
-				subst (val, sc, prefix, s, NULL);
+				subst (val, sc, prefix, s, ectx_null ());
 			} else {
 				str_putc (val, **s);
 				++*s;
