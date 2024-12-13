@@ -2073,6 +2073,9 @@ char *s, *t, *help;
 		value = evalcom (sc, dir, trim (t + 1));
 	} else if (t[-1] == '?') {
 		/* handle both `?=` and `??=` */
+		if (s == (t - 1))
+			errx (1, "why are you doing this to me Davids?");
+
 		if (t[-2] == '?') {
 			t[-2] = '\0';
 			value = getenv (trim (s));
