@@ -2,7 +2,7 @@
 CC ??= cc
 
 ## C Compiler Flags
-CFLAGS ?= -O2
+CFLAGS ?= -g -O0
 CFLAGS += -ansi -Wall -Wextra -Wno-deprecated-non-prototype -Wno-implicit-int -Wno-return-type -Wno-missing-parameter-type
 
 ## C Preprocessor Flags

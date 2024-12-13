@@ -1678,6 +1678,8 @@ struct scope *parent;
 char *name;
 {
 	struct scope *sub;
+	
+	assert (name != NULL);
 
 	sub = new (struct scope);
 	sub->next = parent->dir->subdirs;
@@ -1691,6 +1693,37 @@ char *name;
 	return sub;
 }
 
+struct macro *
+new_macro (name, value, help, lazy, prepend)
+char *name, *value, *help;
+struct macro *prepend;
+{
+	struct macro *m;
+	char *s;
+
+	assert (name != NULL);
+	assert (value != NULL);
+
+	/* check name */
+	if (*name == '\0')
+		errx (1, "new_macro(): macro name is empty");
+	for (s = name; *s != '\0'; ++s) {
+		if (!ismname (*s))
+			errx (1, "invalid macro name: '%s'", name);
+	}
+
+	m = new (struct macro);
+	m->next = NULL;
+	m->enext = NULL;
+	m->prepend = prepend;
+	m->name = name;
+	m->value = value;
+	m->help = help;
+	m->lazy = lazy;
+
+	return m;
+}
+
 struct file *
 new_file (name, rule, time, dhead, dtail, help, inf, obj)
 char *name, *help;
@@ -1700,6 +1733,8 @@ struct dep *dhead, *dtail;
 struct inference *inf;
 {
 	struct file *f;
+
+	assert (name != NULL);
 
 	f = new (struct file);
 	f->next = f->prev = NULL;
@@ -1722,6 +1757,8 @@ struct path *path;
 {
 	struct dep *d;
 
+	assert (path != NULL);
+
 	d = new (struct dep);
 	d->next = d->prev = NULL;
 	d->path = path;
@@ -1734,6 +1771,8 @@ new_dep_name (name)
 char *name;
 {
 	struct path *p;
+
+	assert (name != NULL);
 
 	p = calloc (2, sizeof (struct path));
 	p[0].type = PATH_NAME;
@@ -2024,45 +2063,50 @@ struct scope *sc;
 struct path *dir;
 char *s, *t, *help;
 {
-	struct macro *m, *m2;
-	char *v;
-
-	m = new (struct macro);
-	m->next = sc->dir->macros;
-	m->enext = NULL;
-	m->help = help;
-	m->prepend = NULL;
+	struct macro *m, *prepend = NULL;
+	char *value;
+	int lazy;
 
 	if (t[-1] == '!') {
 		t[-1] = '\0';
-		m->lazy = 0;
-		m->value = evalcom (sc, dir, trim (t + 1));
+		lazy = 0;
+		value = evalcom (sc, dir, trim (t + 1));
 	} else if (t[-1] == '?') {
+		/* handle both `?=` and `??=` */
 		if (t[-2] == '?') {
 			t[-2] = '\0';
-			v = getenv (trim (s));
-			m->value = v != NULL ? v : strdup (trim (t + 1));
+			value = getenv (trim (s));
+			if (value == NULL)
+				value = strdup (trim (t + 1));
 		} else {
 			t[-1] = '\0';
-			m2 = find_macro (sc, trim (s));
-			m->value = m2 != NULL ? m2->value : strdup (trim (t + 1));
+			m = find_macro (sc, trim (s));
+			value = m != NULL ? m->value : strdup (trim (t + 1));
 		}
-		m->lazy = 1;
+		lazy = 1;
 	} else if (t[-1] == ':') {
 		/* handle both `:=` and `::=` */
 		t[t[-2] == ':' ? -2 : -1] = '\0';
-		m->lazy = 0;
-		m->value = expand (sc, dir, trim (t + 1), NULL);
+		value = expand (sc, dir, trim (t + 1), NULL);
+		lazy = 0;
 	} else if (t[-1] == '+') {
 		t[-1] = '\0';
-		m->value = strdup (trim (t + 1));
-		m->prepend = find_macro (sc, trim (s));
-		m->lazy = 1;
+		value = strdup (trim (t + 1));
+		prepend = find_macro (sc, trim (s));
+		lazy = 1;
 	} else {
-		m->lazy = 1;
-		m->value = strdup (trim (t + 1));
+		value = strdup (trim (t + 1));
+		lazy = 1;
 	}
-	m->name = strdup (trim (s));
+
+	m = new_macro (
+		/* name  */ strdup (trim (s)),
+		/* value */ value,
+		/* help  */ help,
+		/* lazy  */ lazy,
+		/*prepend*/ prepend
+	);
+	m->next = sc->dir->macros;
 	sc->dir->macros = m;
 	return 0;
 }
@@ -3189,13 +3233,15 @@ char **argv;
 		str_puts (&cmdline, argv[i]);
 
 		*s = '\0';
-		m = new (struct macro);
+
+		m = new_macro (
+			/* name  */ trim (argv[i]),
+			/* value */ trim (s + 1),
+			/* help  */ NULL,
+			/* lazy  */ 0,
+			/*prepend*/ NULL
+		);
 		m->next = globals;
-		m->enext = NULL;
-		m->prepend = NULL;
-		m->name = trim (argv[i]);
-		m->value = trim (s + 1);
-		m->lazy = 0;
 		globals = m;
 
 		argv[i] = NULL;

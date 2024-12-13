@@ -75,14 +75,14 @@ struct inference {
 };
 
 struct rule {
-	char **code;
+	char **code; /* optional */
 };
 
 struct macro {
 	struct macro *next, *enext, *prepend;
-	char *name;
-	char *value;
-	char *help;
+	char *name; /* required */
+	char *value; /* required */
+	char *help; /* optional */
 	int lazy;
 };
 
