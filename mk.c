@@ -2186,7 +2186,7 @@ FILE *file;
 	size_t len, cap, iflen = 0;
 	char *s, *t, *u, *help = NULL;
 	char ifstack[MAX_IFSTACK];
-	int x, run;
+	int x, run, oldcline;
 	FILE *tfile;
 	str_t text;
 
@@ -2196,6 +2196,8 @@ FILE *file;
 	if (verbose >= 3) {
 		printf ("Parsing dir '%s' ...\n", path_to_str (dir));
 	}
+
+	cline = 1;
 
 	for (; (s = readline (file, &cline)) != NULL; free (s)) {
 		run = walkifstack (ifstack, iflen);
@@ -2214,7 +2216,9 @@ FILE *file;
 			} else {
 				u = strdup (path_cat_str (dir, t));
 			}
+			oldcline = cline;
 			parse (sc, dir, u);
+			cline = oldcline;
 			if (u != t)
 				free (u);
 			free (t);
@@ -2310,7 +2314,9 @@ FILE *file;
 			if (!run)
 				goto cont;
 
-			/* TODO: check name */
+			if (s == t)
+				errx (1, "%s:%d: invalid macro name", path, cline);
+
 			*t = '\0';
 			parse_assign (sc, dir, s, t, help);
 		} else if ((t = strchr (s, ':')) != NULL) {
