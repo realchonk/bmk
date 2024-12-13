@@ -2011,7 +2011,8 @@ char *s, *t, *help;
 			if (f->help == NULL)
 				f->help = help;
 
-			file_add_deps (f, dhead, dtail);
+			if (dhead != NULL)
+				file_add_deps (f, dhead, dtail);
 		}
 	}
 	free (u);
@@ -3027,7 +3028,7 @@ struct scope *sc;
 		printf ("\n");
 
 		r = f->rule;
-		if (r != NULL) {
+		if (r != NULL && r->code != NULL) {
 			for (s = r->code; *s != NULL; ++s)
 				printf ("\t%s\n", *s);
 		}
@@ -3039,9 +3040,11 @@ struct scope *sc;
 		for (dep = inf->dhead; dep != NULL; dep = dep->next)
 			printf (" %s", path_to_str (dep->path));
 		printf ("\n");
-		for (s = inf->rule->code; *s != NULL; ++s)
-			printf ("\t%s\n", *s);
-		printf ("\n");
+		if (inf->rule->code != NULL) {
+			for (s = inf->rule->code; *s != NULL; ++s)
+				printf ("\t%s\n", *s);
+			printf ("\n");
+		}
 	}
 	
 	for (sub = sc->dir->subdirs; sub != NULL; sub = sub->next) {

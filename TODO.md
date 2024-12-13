@@ -94,3 +94,11 @@ is interpreted as macro definition:
 CLEAN = ${.SUBDIRS:=/clean}
 `clean: ${CLEAN}`
 ```
+## Crash #1
+```make
+a:
+    echo a
+b:
+    echo b
+a a: b
+```
