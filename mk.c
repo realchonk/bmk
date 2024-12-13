@@ -2107,6 +2107,11 @@ char *s, *t, *help;
 		if (t[-2] == '?') {
 			t[-2] = '\0';
 			value = getenv (trim (s));
+			if (value == NULL) {
+				m = find_macro (sc, trim (s));
+				if (m != NULL)
+					value = m->value;
+			}
 			if (value == NULL)
 				value = strdup (trim (t + 1));
 		} else {
