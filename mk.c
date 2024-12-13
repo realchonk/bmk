@@ -840,6 +840,7 @@ struct expand_ctx *ctx;
 	int i, j;
 
 	/* TODO: .SUBDIRS, .EXPORTS */
+	assert (ctx != NULL);
 
 	if (strcmp (name, ".SUBDIRS") == 0) {
 		if (sc->type != SC_DIR) {
@@ -873,11 +874,11 @@ struct expand_ctx *ctx;
 	} else if (strcmp (name, ".OBJDIR") == 0) {
 		write_objdir (out, sc);
 	} else if (strcmp (name, ".TARGET") == 0) {
-		if (ctx == NULL)
+		if (ctx->target == NULL)
 			errx (1, "%s: cannot use $@ or ${.TARGET} here", sc_path_str (sc));
 		str_puts (out, ctx->target);
 	} else if (strcmp (name, ".IMPSRC") == 0) {
-		if (ctx == NULL)
+		if (ctx->dep0 == NULL)
 			errx (1, "%s: cannot use $< or ${.IMPSRC} here", sc_path_str (sc));
 
 		if (ctx->dep0 == NULL)
@@ -885,7 +886,7 @@ struct expand_ctx *ctx;
 
 		dep_write (out, sc, ctx->dep0);
 	} else if (strcmp (name, ".ALLSRC") == 0) {
-		if (ctx == NULL)
+		if (ctx->target == NULL)
 			errx (1, "%s: cannot use $^ or ${.ALLSRC} here", sc_path_str (sc));
 
 		for (dep = ctx->deps; dep != NULL; dep = dep->next) {
