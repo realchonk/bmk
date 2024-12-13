@@ -2248,7 +2248,7 @@ FILE *file;
 			if (!run)
 				goto cont;
 
-			t = expand (sc, dir, s + 8, NULL);
+			t = expand (sc, dir, trim (s + 8), NULL);
 			if (*t == '/') {
 				u = t;
 			} else {
@@ -2257,6 +2257,23 @@ FILE *file;
 			oldcline = cline;
 			parse (sc, dir, u);
 			cline = oldcline;
+			if (u != t)
+				free (u);
+			free (t);
+		} else if (starts_with (s, "-include ") || starts_with (s, "sinclude ")) {
+			if (!run)
+				goto cont;
+
+			t = expand (sc, dir, trim (s + 9), NULL);
+			if (*t == '/') {
+				u = t;
+			} else {
+				u = strdup (path_cat_str (dir, t));
+			}
+
+			if (access (t, R_OK) == 0)
+				parse (sc, dir, u);
+
 			if (u != t)
 				free (u);
 			free (t);
