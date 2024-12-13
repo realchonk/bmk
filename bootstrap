@@ -1,6 +1,6 @@
 #!/bin/sh -e
 
 [ "${CC}" ] || CC=cc
-[ "${CFLAGS}" ] || CFLAGS='-ansi -w'
+[ "${CFLAGS}" ] || CFLAGS='-ansi -w -D_XOPEN_SOURCE=700 -D_GNU_SOURCE'
 
 ${CC} -o xmk mk.c ${CFLAGS} ${CPPFLAGS} ${LDFLAGS}
