@@ -2117,6 +2117,8 @@ char *s, *t, *help;
 		lazy = 1;
 	} else if (t[-1] == ':') {
 		/* handle both `:=` and `::=` */
+		if (s == (t - 1))
+			errx (1, "why are you doing this to me Davids, again?");
 		t[t[-2] == ':' ? -2 : -1] = '\0';
 		value = expand (sc, dir, trim (t + 1), NULL);
 		lazy = 0;
