@@ -1,7 +1,3 @@
-#if __linux__
-# define _GNU_SOURCE
-# define _XOPEN_SOURCE 700
-#endif
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
@@ -320,6 +316,8 @@ struct path *old, *comp;
 		p = path_cpy (old, len, len + 1);
 		p[len] = *comp;
 		break;
+	default:
+		abort ();
 	}
 
 	return p;
@@ -1410,9 +1408,7 @@ char *s;
 	return *endp != '\0' || x != 0;
 }
 
-e_command (sc, prefix, s, cmd, arg)
-struct scope *sc;
-struct path *prefix;
+e_command (s, cmd, arg)
 char **s, *cmd;
 str_t *arg;
 {
@@ -1457,13 +1453,13 @@ str_t *val;
 		}
 		++*s;
 	} else if (starts_with (*s, "defined")) {
-		e_command (sc, prefix, s, "defined", &arg);
+		e_command (s, "defined", &arg);
 		x = find_macro (sc, str_get (&arg)) != NULL;
 	comm:
 		str_putc (val, x ? '1' : '0');
 		str_free (&arg);
 	} else if (starts_with (*s, "target")) {
-		e_command (sc, prefix, s, "target", &arg);
+		e_command (s, "target", &arg);
 		x = find_file (sc->dir, str_get (&arg)) != NULL;
 		goto comm;
 	} else {
@@ -1815,9 +1811,8 @@ char *s;
 }
 
 /* .FOREIGN: libfoo libbar */
-parse_foreign (sc, dir, s)
+parse_foreign (sc, s)
 struct scope *sc;
-struct path *dir;
 char *s;
 {
 	struct scope *sub;
@@ -1840,9 +1835,8 @@ char *s;
 }
 
 /* .EXPORTS: CC CFLAGS */
-parse_exports (sc, dir, s)
+parse_exports (sc, s)
 struct scope *sc;
-struct path *dir;
 char *s;
 {
 	struct macro *m;
@@ -2249,10 +2243,10 @@ FILE *file;
 				parse_subdirs (sc, dir, t);
 		} else if (is_target (&t, s, ".FOREIGN")) {
 			if (run)
-				parse_foreign (sc, dir, t);
+				parse_foreign (sc, t);
 		} else if (is_target (&t, s, ".EXPORTS")) {
 			if (run)
-				parse_exports (sc, dir, t);
+				parse_exports (sc, t);
 		} else if (s[0] == '\t') {
 			if (!run)
 				goto cont;
@@ -2419,7 +2413,7 @@ char *name, *sufx;
 	size_t len_name, len_sufx;
 
 	ext = strrchr (name, '.');
-	len_name = ext != NULL ? ext - name : strlen (name);
+	len_name = ext != NULL ? (size_t)(ext - name) : strlen (name);
 	len_sufx = strlen (sufx);
 
 	out = malloc (len_name + len_sufx + 1);

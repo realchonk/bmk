@@ -3,10 +3,10 @@ CC ??= cc
 
 ## C Compiler Flags
 CFLAGS ?= -O2
-CFLAGS += -ansi -Wall -Wextra -Wno-deprecated-non-prototype -Wno-implicit-int
+CFLAGS += -ansi -Wall -Wextra -Wno-deprecated-non-prototype -Wno-implicit-int -Wno-return-type -Wno-missing-parameter-type
 
 ## C Preprocessor Flags
-CPPFLAGS ?= -D_GNU_SOURCE -D_BSD_SOURCE
+CPPFLAGS ?= -D_GNU_SOURCE -D_BSD_SOURCE -D_POSIX_C_SOURCE=700
 
 ## Linker Flags
 LDFLAGS ?=
