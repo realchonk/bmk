@@ -1,0 +1,12 @@
+CC = @CC@
+CFLAGS = @CFLAGS@
+CPPFLAGS = @CPPFLAGS@
+LDFLAGS = @LDFLAGS@
+LIBS = @LIBS@
+LIBOBJS = @LIBOBJS@
+
+prefix = @prefix@
+exec_prefix = @prefix@
+datarootdir = @datarootdir@
+bindir = @bindir@
+mandir = @mandir@

@@ -1,11 +1,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
-#include <fnmatch.h>
 #include <assert.h>
 #include <unistd.h>
 #include <limits.h>
-#include <libgen.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -13,7 +11,7 @@
 #include <ctype.h>
 #include <fcntl.h>
 #include <time.h>
-#include <err.h>
+#include "compats.h"
 #include "mk.h"
 
 #define new(T) ((T *)calloc (1, sizeof (T)))

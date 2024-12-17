@@ -2,3 +2,6 @@ xmk
 mk
 *.core
 *.swp
+configure
+build-aux
+autom4te.cache
