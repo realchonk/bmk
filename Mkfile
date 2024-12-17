@@ -4,11 +4,10 @@
 CC ?= cc
 
 ## C Compiler Flags
-CFLAGS ?= -g -O0
-CFLAGS += -ansi -Wall -Wextra -Wno-deprecated-non-prototype -Wno-implicit-int -Wno-return-type # -Wno-missing-parameter-type
+CFLAGS ?= -g -O0 -ansi -Wall -Wextra -Wno-deprecated-non-prototype -Wno-implicit-int -Wno-return-type
 
 ## C Preprocessor Flags
-CPPFLAGS ?= -D_GNU_SOURCE -D_BSD_SOURCE -D_POSIX_C_SOURCE=700
+CPPFLAGS ?= -D_GNU_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=700
 
 ## Linker Flags
 LDFLAGS ?=
@@ -30,7 +29,7 @@ clean:
 ## Remove even more stuff
 distclean: clean
 	rm -rf build-aux autom4te.cache
-	rm -f configure config.status config.log config.h.in config.h config.mk *~
+	rm -f configure config.status config.log config.h.in config.h config.mk aclocal.m4 *~
 
 ## Install mk into ${PREFIX}
 install: mk

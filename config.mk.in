@@ -3,7 +3,6 @@ CFLAGS = @CFLAGS@
 CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
-LIBOBJS = @LIBOBJS@
 
 prefix = @prefix@
 exec_prefix = @prefix@
