@@ -32,7 +32,7 @@ struct scope {
 	union {
 		struct directory *dir; /* optional */
 		struct custom *custom; /* required */
-	};
+	} inner;
 };
 
 struct directory {

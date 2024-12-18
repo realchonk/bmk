@@ -537,6 +537,27 @@ struct timespec *a, *b;
 	}
 }
 
+#if NDEBUG
+# define sc_dir(sc) ((sc)->dir)
+# define sc_custom(sc) ((sc)->custom)
+#else
+struct directory *
+sc_dir (sc)
+struct scope *sc;
+{
+	assert (sc->type == SC_DIR);
+	return sc->inner.dir;
+}
+
+struct custom *
+sc_custom (sc)
+struct scope *sc;
+{
+	assert (sc->type == SC_CUSTOM);
+	return sc->inner.custom;
+}
+#endif
+
 /* MKDIR */
 
 mkdir_p (dir)
@@ -609,7 +630,7 @@ char *name;
 	if (sc == NULL)
 		return NULL;
 
-	for (m = sc->dir->emacros; m != NULL; m = m->enext) {
+	for (m = sc_dir (sc)->emacros; m != NULL; m = m->enext) {
 		if (strcmp (m->name, name) == 0)
 			return m;
 	}
@@ -624,7 +645,7 @@ char *name;
 {
 	struct macro *m;
 
-	for (m = sc->dir->macros; m != NULL; m = m->next) {
+	for (m = sc_dir (sc)->macros; m != NULL; m = m->next) {
 		if (strcmp (m->name, name) == 0)
 			return m;
 	}
@@ -648,7 +669,7 @@ char *name;
 {
 	struct template *tm;
 
-	for (tm = sc->dir->templates; tm != NULL; tm = tm->next) {
+	for (tm = sc_dir (sc)->templates; tm != NULL; tm = tm->next) {
 		if (strcmp (tm->name, name) == 0)
 			return tm;
 	}
@@ -678,7 +699,7 @@ char *name;
 {
 	struct scope *sub;
 
-	for (sub = sc->dir->subdirs; sub != NULL; sub = sub->next) {
+	for (sub = sc_dir (sc)->subdirs; sub != NULL; sub = sub->next) {
 		if (strcmp (sub->name, name) == 0)
 			return sub;
 	}
@@ -853,7 +874,7 @@ struct expand_ctx *ctx;
 			errx (1, "%s: invalid scope type", sc_path_str (sc));
 		}
 
-		sub = sc->dir->subdirs;
+		sub = sc_dir (sc)->subdirs;
 		if (sub == NULL)
 			return 0;
 
@@ -866,7 +887,7 @@ struct expand_ctx *ctx;
 		if (sc->type != SC_DIR)
 			goto invsc;
 
-		m = sc->dir->emacros;
+		m = sc_dir (sc)->emacros;
 		if (m == NULL)
 			return 0;
 
@@ -1493,7 +1514,7 @@ str_t *val;
 		str_free (&arg);
 	} else if (starts_with (*s, "target")) {
 		e_command (s, "target", &arg);
-		x = find_file (sc->dir, str_get (&arg)) != NULL;
+		x = find_file (sc_dir (sc), str_get (&arg)) != NULL;
 		goto comm;
 	} else {
 		errx (1, "%s:%d: invalid expression: '%s'", cpath, cline, *s);
@@ -1710,18 +1731,21 @@ new_subdir (parent, name)
 struct scope *parent;
 char *name;
 {
+	struct directory *pdir;
 	struct scope *sub;
 	
 	assert (name != NULL);
 
+	pdir = sc_dir (parent);
+
 	sub = new (struct scope);
-	sub->next = parent->dir->subdirs;
+	sub->next = pdir->subdirs;
 	sub->type = SC_DIR;
 	sub->name = name;
 	sub->parent = parent;
 	sub->makefile = NULL;
 	sub->created = 0;
-	parent->dir->subdirs = sub;
+	pdir->subdirs = sub;
 
 	return sub;
 }
@@ -1887,6 +1911,7 @@ parse_foreign (sc, s)
 struct scope *sc;
 char *s;
 {
+	struct custom *cs;
 	struct scope *sub;
 	char *subdir, *name;
 
@@ -1898,9 +1923,10 @@ char *s;
 		sub = new_subdir (sc, name);
 		sub->type = SC_CUSTOM;
 		sub->makefile = NULL;
-		sub->custom = new (struct custom);
-		sub->custom->test = NULL;
-		sub->custom->exec = NULL;
+		cs = new (struct custom);
+		cs->test = NULL;
+		cs->exec = NULL;
+		sub->inner.custom = cs;
 	}
 
 	return 0;
@@ -1919,7 +1945,7 @@ char *s;
 			continue;
 
 		/* check if the macro is already exported */
-		for (m = sc->dir->emacros; m != NULL; m = m->enext) {
+		for (m = sc_dir (sc)->emacros; m != NULL; m = m->enext) {
 			if (strcmp (m->name, name) == 0)
 				goto cont; /* already exported */
 		}
@@ -1928,8 +1954,8 @@ char *s;
 		if (m == NULL)
 			errx (1, "%s:%d: no such macro: '%s'", cpath, cline, name);
 
-		m->enext = sc->dir->emacros;
-		sc->dir->emacros = m;
+		m->enext = sc_dir (sc)->emacros;
+		sc_dir (sc)->emacros = m;
 
 	cont:;
 	}
@@ -1961,9 +1987,9 @@ struct file *f;
 		errx (1, "%s: not a custom subdir: %s", sc_path_str (sc), name);
 
 	if (ch == '?') {
-		sub->custom->test = f;
+		sub->inner.custom->test = f;
 	} else {
-		sub->custom->exec = f;
+		sub->inner.custom->exec = f;
 	}
 
 	free (name);
@@ -2035,7 +2061,7 @@ char *s, *t, *help;
 	if (is_inf (u)) {
 		p = strchr (u + 1, '.');
 		inf = new (struct inference);
-		inf->next = sc->dir->infs;
+		inf->next = sc_dir (sc)->infs;
 		inf->rule = r;
 		inf->dhead = dhead;
 		inf->dtail = dtail;
@@ -2050,7 +2076,7 @@ char *s, *t, *help;
 			inf->to = "";
 		}
 
-		sc->dir->infs = inf;
+		sc_dir (sc)->infs = inf;
 	} else {
 		v = u;
 		while ((p = strsep (&v, " \t")) != NULL) {
@@ -2058,7 +2084,7 @@ char *s, *t, *help;
 				continue;
 			/* TODO: check name */
 
-			f = find_file (sc->dir, p);
+			f = find_file (sc_dir (sc), p);
 			if (f == NULL) {
 				get_mtime (&ft, sc, dir, p);
 					
@@ -2073,7 +2099,7 @@ char *s, *t, *help;
 					/* obj  */ ft.obj
 				);
 				/* TODO: maybe first do try_add_custom()? */
-				dir_add_file (sc->dir, f);
+				dir_add_file (sc_dir (sc), f);
 				try_add_custom (sc, f);
 				continue;
 			}
@@ -2149,8 +2175,8 @@ char *s, *t, *help;
 		/* lazy  */ lazy,
 		/*prepend*/ prepend
 	);
-	m->next = sc->dir->macros;
-	sc->dir->macros = m;
+	m->next = sc_dir (sc)->macros;
+	sc_dir (sc)->macros = m;
 	return 0;
 }
 
@@ -2311,7 +2337,7 @@ FILE *file;
 			str_new (&text);
 
 			tm = new (struct template);
-			tm->next = sc->dir->templates;
+			tm->next = sc_dir (sc)->templates;
 			tm->name = strdup (t);
 
 			for (free (s); (s = readline (file, &cline)) != NULL; free (s)) {
@@ -2324,7 +2350,7 @@ FILE *file;
 
 			if (run) {
 				tm->text = str_release (&text);
-				sc->dir->templates = tm;
+				sc_dir (sc)->templates = tm;
 			} else {
 				free (tm);
 				str_free (&text);
@@ -2340,7 +2366,7 @@ FILE *file;
 			fclose (tfile);
 		} else if (is_target (&t, s, ".DEFAULT")) {
 			if (run)
-				sc->dir->default_file = strdup (t);
+				sc_dir (sc)->default_file = strdup (t);
 		} else if (is_target (NULL, s, ".POSIX")) {
 			if (run)
 				warnx ("%s:%d: this is not a POSIX-compatible make", path, cline);
@@ -2407,24 +2433,26 @@ struct scope *sc;
 struct path *dir;
 char *path;
 {
+	struct directory *dirx;
 	FILE *file;
 
 	file = fopen (path, "r");
 	if (file == NULL)
 		err (1, "fopen(\"%s\")", path);
 
-	if (sc->dir == NULL) {
-		sc->dir = new (struct directory);
-		sc->dir->subdirs = NULL;
-		sc->dir->fhead = NULL;
-		sc->dir->ftail = NULL;
-		sc->dir->done = 0;
-	} else if (sc->dir->done) {
+	if (sc->inner.dir == NULL) {
+		dirx = new (struct directory);
+		dirx->subdirs = NULL;
+		dirx->fhead = NULL;
+		dirx->ftail = NULL;
+		dirx->done = 0;
+		sc->inner.dir = dirx;
+	} else if (sc_dir (sc)->done) {
 		errx (1, "%s: parsing this file again?", path);
 	}
 
 	do_parse (sc, dir, path, file);
-	sc->dir->done = 1;
+	sc_dir (sc)->done = 1;
 
 	fclose (file);
 	return 0;
@@ -2472,7 +2500,7 @@ char *makefile;
 		if (parent->type != SC_DIR)
 			errx (1, "%s: invalid parent type", path_to_str (mfpath));
 
-		for (sc = parent->dir->subdirs; sc != NULL; sc = sc->next) {
+		for (sc = sc_dir (parent)->subdirs; sc != NULL; sc = sc->next) {
 			if (strcmp (sc->name, name) == 0) {
 				if (sc->type != SC_DIR)
 					errx (1, "%s: invalid type", path_to_str (mfpath));
@@ -2486,7 +2514,7 @@ char *makefile;
 		sc = new (struct scope);
 		sc->type = SC_DIR;
 		sc->name = name;
-		sc->dir = NULL;
+		sc->inner.dir = NULL;
 	}
 
 parse:
@@ -2557,7 +2585,7 @@ char *name;
 		/* inf  */ inf,
 		/* obj  */ 0
 	);
-	dir_add_file (sc->dir, f);
+	dir_add_file (sc_dir (sc), f);
 
 	return f;
 }
@@ -2606,10 +2634,10 @@ char *name;
 		base[ext - name] = '\0';
 	}
 
-	for (inf = sc->dir->infs; inf != NULL; inf = inf->next) {
+	for (inf = sc_dir (sc)->infs; inf != NULL; inf = inf->next) {
 		if (strcmp (inf->to, ext) == 0) {
 			sn = xstrcat (base, inf->from);
-			sf = find_file (sc->dir, sn);
+			sf = find_file (sc_dir (sc), sn);
 			if (sf == NULL)
 				sf = try_find (sc, dir, sn);
 			free (sn);
@@ -2650,7 +2678,7 @@ char *name;
 		/* inf  */ NULL,
 		/* obj  */ ft.obj
 	);
-	dir_add_file (sc->dir, f);
+	dir_add_file (sc_dir (sc), f);
 
 	return f;
 }
@@ -2740,16 +2768,16 @@ struct path *prefix;
 	switch (sc->type) {
 	case SC_DIR:
 		/* lazily parse subdirectories */
-		if (sc->dir == NULL)
+		if (sc_dir (sc) == NULL)
 			parse_dir (sc, prefix);
 
 		/* if no rule specified to build, use the default rule */
-		if (name == NULL && sc->dir->default_file != NULL)
-			name = sc->dir->default_file;
+		if (name == NULL && sc_dir (sc)->default_file != NULL)
+			name = sc_dir (sc)->default_file;
 
 		if (name != NULL) {
 			/* try finding an explicitly defined file */
-			f = find_file (sc->dir, name);
+			f = find_file (sc_dir (sc), name);
 
 			if (f == NULL) {
 				/* try finding and building a subdirectory */
@@ -2772,7 +2800,7 @@ struct path *prefix;
 				f->obj = ft.obj;
 			}
 		} else {
-			f = sc->dir->fhead;
+			f = sc_dir (sc)->fhead;
 			if (f == NULL)
 				errx (1, "%s: nothing to build", sc_path_str (sc));
 		}
@@ -2863,7 +2891,7 @@ struct path *prefix;
 		xdep.path = xpath;
 		xdep.obj = 0;
 
-		f = sc->custom->test;
+		f = sc_custom (sc)->test;
 		if (f != NULL) {
 			assert (f->inf == NULL);
 
@@ -2908,7 +2936,7 @@ struct path *prefix;
 		}
 
 		/* run the "subdir!" rule */
-		f = sc->custom->exec;
+		f = sc_custom (sc)->exec;
 		if (f == NULL)
 			errx (1, "%s: missing '%s!' rule", sc_path_str (sc->parent), sc->name);
 		assert (f->inf == NULL);
@@ -2975,7 +3003,7 @@ struct path *path, *prefix;
 		if (sc->type != SC_DIR)
 			errx (1, "%s: invalid path", sc_path_str (sc));
 
-		if (sc->dir == NULL)
+		if (sc_dir (sc) == NULL)
 			parse_dir (sc, prefix);
 
 		new_prefix = path_cat (prefix, &path[0]);
@@ -3007,9 +3035,9 @@ struct scope *sc;
 {
 	struct macro *m;
 
-	assert (sc->dir != NULL);
+	assert (sc_dir (sc) != NULL);
 
-	for (m = sc->dir->macros; m != NULL; m = m->next) {
+	for (m = sc_dir (sc)->macros; m != NULL; m = m->next) {
 		if (m->help == NULL)
 			continue;
 
@@ -3036,7 +3064,7 @@ struct scope *sc;
 		p += 2; /* skip ./ */
 	}
 
-	for (f = sc->dir->fhead; f != NULL; f = f->next) {
+	for (f = sc_dir (sc)->fhead; f != NULL; f = f->next) {
 		if (f->help == NULL)
 			continue;
 
@@ -3050,7 +3078,7 @@ struct scope *sc;
 	if (!verbose)
 		return 0;
 
-	for (sub = sc->dir->subdirs; sub != NULL; sub = sub->next) {
+	for (sub = sc_dir (sc)->subdirs; sub != NULL; sub = sub->next) {
 		if (sub->type != SC_DIR)
 			continue;
 
@@ -3110,13 +3138,13 @@ struct scope *sc;
 	if (verbose)
 		printf ("=== %s\n", sc_path_str (sc));
 
-	if (sc->type != SC_DIR || sc->dir == NULL)
+	if (sc->type != SC_DIR || sc_dir (sc) == NULL)
 		errx (1, "%s: print_sc(): must be of type SC_DIR", sc_path_str (sc));
 
-	if (sc->dir->default_file != NULL)
-		printf (".DEFAULT: %s\n", sc->dir->default_file);
+	if (sc_dir (sc)->default_file != NULL)
+		printf (".DEFAULT: %s\n", sc_dir (sc)->default_file);
 
-	for (m = sc->dir->macros; m != NULL; m = m->next) {
+	for (m = sc_dir (sc)->macros; m != NULL; m = m->next) {
 		if (m->help != NULL)
 			printf ("\n## %s\n", m->help);
 		printf ("%s %s= %s\n", m->name, m->prepend != NULL ? "+" : "", m->value);
@@ -3124,7 +3152,7 @@ struct scope *sc;
 
 	printf ("\n");
 
-	for (f = sc->dir->fhead; f != NULL; f = f->next) {
+	for (f = sc_dir (sc)->fhead; f != NULL; f = f->next) {
 		if (f->help != NULL)
 			printf ("## %s\n", f->help);
 		printf ("%s:", f->name);
@@ -3145,7 +3173,7 @@ struct scope *sc;
 		printf ("\n");
 	}
 
-	for (inf = sc->dir->infs; inf != NULL; inf = inf->next) {
+	for (inf = sc_dir (sc)->infs; inf != NULL; inf = inf->next) {
 		printf ("%s%s:", inf->from, inf->to);
 		for (dep = inf->dhead; dep != NULL; dep = dep->next)
 			printf (" %s", path_to_str (dep->path));
@@ -3157,7 +3185,7 @@ struct scope *sc;
 		}
 	}
 	
-	for (sub = sc->dir->subdirs; sub != NULL; sub = sub->next) {
+	for (sub = sc_dir (sc)->subdirs; sub != NULL; sub = sub->next) {
 		switch (sub->type) {
 		case SC_DIR:
 			printf (".include %s, DIR", sub->name);
@@ -3172,7 +3200,7 @@ struct scope *sc;
 	}
 
 	if (verbose) {
-		for (sub = sc->dir->subdirs; sub != NULL; sub = sub->next) {
+		for (sub = sc_dir (sc)->subdirs; sub != NULL; sub = sub->next) {
 			if (sub->type != SC_DIR)
 				continue;
 
