@@ -1,3 +1,4 @@
+#include "config.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
@@ -16,7 +17,6 @@
 
 #define new(T) ((T *)calloc (1, sizeof (T)))
 #define MAKEFILE "Mkfile"
-#define SHELL "sh"
 
 static char *cpath, *objdir = NULL;
 static int verbose = 0, cline = 0, conterr = 0;

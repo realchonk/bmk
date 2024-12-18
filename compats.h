@@ -1,5 +1,3 @@
-#include "config.h"
-
 #ifndef HAVE_REALLOCARRAY
 extern void *reallocarray ();
 #endif /* HAVE_REALLOCARRAY */

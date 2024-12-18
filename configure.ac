@@ -6,6 +6,10 @@ AC_DEFUN([MK_CHECK_COMPILE_FLAG], [
 ])
 
 AC_ARG_ENABLE([warnings], AS_HELP_STRING([--disable-warnings], [disable compiler warnings]))
+AC_ARG_WITH([shell],
+	    AS_HELP_STRING([--with-shell=SHELL], [set the default shell]),
+	    [mk_shell=$with_shell],
+	    [mk_shell="sh"])
 
 AC_CONFIG_SRCDIR([mk.c])
 AC_CONFIG_AUX_DIR([build-aux])
@@ -36,6 +40,8 @@ AS_IF([test "x$enable_warnings" != "xno"], [
 AC_FUNC_FORK
 AC_CHECK_FUNCS([reallocarray fnmatch basename dirname])
 AC_CHECK_HEADERS([err.h fnmatch.h libgen.h])
+
+AC_DEFINE_UNQUOTED([SHELL], ["$mk_shell"], [Default value for SHELL variable])
 
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([config.mk])
