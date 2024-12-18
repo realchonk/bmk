@@ -7,9 +7,14 @@ AC_DEFUN([MK_CHECK_COMPILE_FLAG], [
 
 AC_ARG_ENABLE([warnings], AS_HELP_STRING([--disable-warnings], [disable compiler warnings]))
 AC_ARG_WITH([shell],
-	    AS_HELP_STRING([--with-shell=SHELL], [set the default shell]),
-	    [mk_shell=$with_shell],
-	    [mk_shell="sh"])
+	AS_HELP_STRING([--with-shell=SHELL], [default value for the SHELL variable (default: sh)]),
+	[mk_shell=$with_shell],
+	[mk_shell="sh"])
+AC_ARG_WITH([makefile],
+	AS_HELP_STRING([--with-makefile=FILE], [default name of the makefile (default: Mkfile)]),
+	[mk_makefile=$with_makefile],
+	[mk_makefile="Mkfile"])
+
 
 AC_CONFIG_SRCDIR([mk.c])
 AC_CONFIG_AUX_DIR([build-aux])
@@ -42,6 +47,7 @@ AC_CHECK_FUNCS([reallocarray fnmatch basename dirname])
 AC_CHECK_HEADERS([err.h fnmatch.h libgen.h])
 
 AC_DEFINE_UNQUOTED([SHELL], ["$mk_shell"], [Default value for SHELL variable])
+AC_DEFINE_UNQUOTED([MAKEFILE], ["$mk_makefile"], [Default name of the makefile])
 
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([config.mk])
