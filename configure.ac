@@ -44,7 +44,7 @@ AS_IF([test "x$enable_warnings" != "xno"], [
 ])
 
 AC_FUNC_FORK
-AC_CHECK_FUNCS([reallocarray fnmatch basename dirname])
+AC_CHECK_FUNCS([reallocarray fnmatch basename dirname strdup])
 AC_CHECK_HEADERS([err.h fnmatch.h libgen.h])
 
 AC_DEFINE_UNQUOTED([SHELL], ["$mk_shell"], [Default value for SHELL variable])

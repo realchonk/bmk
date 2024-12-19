@@ -83,3 +83,18 @@ void warn (const char *fmt, ...)
 #ifndef HAVE_DIRNAME
 # error No fallback implementation for dirname()
 #endif
+
+#ifndef HAVE_STRDUP
+char *strdup (s)
+char *s;
+{
+	size_t len;
+	char *out;
+
+	len = strlen (s) + 1;
+	out = malloc (len);
+	memcpu (out, s, len);
+
+	return out;
+}
+#endif

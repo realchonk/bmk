@@ -23,3 +23,7 @@ extern fnmatch ();
 extern char *basename ();
 extern char *dirname ();
 #endif /* HAVE_LIBGEN_H */
+
+#ifndef HAVE_STRDUP
+extern char *strdup ();
+#endif
