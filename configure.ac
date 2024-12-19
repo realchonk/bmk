@@ -33,6 +33,7 @@ AS_IF([test "x$enable_warnings" != "xno"], [
 	case "${ax_cv_c_compiler_vendor}" in
 	gnu)
 		MK_CHECK_COMPILE_FLAG([-Wno-return-type])
+		MK_CHECK_COMPILE_FLAG([-Wno-missing-parameter-type])
 		;;
 	clang)
 		MK_CHECK_COMPILE_FLAG([-Wno-deprecated-non-prototype])
