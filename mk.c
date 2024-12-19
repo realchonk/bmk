@@ -518,7 +518,22 @@ struct timespec
 now ()
 {
 	struct timespec t;
+
+#ifdef HAVE_CLOCK_GETTIME
 	clock_gettime (CLOCK_REALTIME, &t);
+#elif defined(HAVE_GETTIMEOFDAY)
+	struct timeval tv;
+	gettimeofday (&tv, NULL);
+	t.tv_sec = tv.tv_sec;
+	t.tv_nsec = tv.tv_sec;
+#else
+# warn No sub-second time resolution for now()
+	time_t tx;
+	tx = time (NULL);
+	t.tv_sec = tx;
+	t.tv_nsec = 0;
+#endif
+
 	return t;
 }
 

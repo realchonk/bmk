@@ -44,8 +44,13 @@ AS_IF([test "x$enable_warnings" != "xno"], [
 ])
 
 AC_FUNC_FORK
-AC_CHECK_FUNCS([reallocarray fnmatch basename dirname strdup realpath])
+AC_CHECK_FUNCS([reallocarray fnmatch basename dirname strdup realpath clock_gettime])
 AC_CHECK_HEADERS([err.h fnmatch.h libgen.h])
+AC_CHECK_MEMBER([struct timespec.tv_nsec], [], [#include <sys/time.h>])
+
+AS_IF([test "x$ac_cv_func_clock_gettime" = "xno"], [
+	AC_CHECK_FUNC([gettimeofday])
+])
 
 AC_DEFINE_UNQUOTED([SHELL], ["$mk_shell"], [Default value for SHELL variable])
 AC_DEFINE_UNQUOTED([MAKEFILE], ["$mk_makefile"], [Default name of the makefile])
