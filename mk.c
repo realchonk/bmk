@@ -1432,8 +1432,8 @@ struct expand_ctx *ctx;
 		err (1, "exec('%s')", ecmd);
 	} else {
 		free (ecmd);
-		if (waitpid (pid, &ws, 0) != pid) {
-			warn ("waitpid(%d)", (int)pid);
+		if (wait (&ws) != pid) {
+			warn ("wait()");
 			return 255;
 		}
 
