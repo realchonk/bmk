@@ -368,6 +368,7 @@ struct path *p;
 {
 	char *s, *t;
 
+	/* TODO: maybe allocate the buffer beforehand */
 	s = realpath (path_to_str (p), NULL);
 	t = strdup (basename (s));
 	free (s);

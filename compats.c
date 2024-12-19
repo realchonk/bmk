@@ -98,3 +98,7 @@ char *s;
 	return out;
 }
 #endif
+
+#ifndef HAVE_REALPATH
+# error No fallback implementation for realpath()
+#endif
