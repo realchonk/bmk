@@ -2,6 +2,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#if HAVE_SYS_TIME_H
+# include <sys/time.h>
+#endif
 #include <assert.h>
 #include <unistd.h>
 #include <limits.h>

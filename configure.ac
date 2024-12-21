@@ -45,8 +45,10 @@ AS_IF([test "x$enable_warnings" != "xno"], [
 
 AC_FUNC_FORK
 AC_CHECK_FUNCS([reallocarray fnmatch basename dirname strdup realpath strsep clock_gettime])
-AC_CHECK_HEADERS([err.h fnmatch.h libgen.h])
-AC_CHECK_MEMBER([struct timespec.tv_nsec], [], [#include <sys/time.h>])
+AC_CHECK_HEADERS([err.h fnmatch.h libgen.h sys/time.h])
+AC_CHECK_MEMBER([struct timespec.tv_nsec], [
+	AC_DEFINE([HAVE_TIMESPEC], [1], [Define to 1 if you have the 'timespec' struct])
+])
 
 AS_IF([test "x$ac_cv_func_clock_gettime" = "xno"], [
 	AC_CHECK_FUNC([gettimeofday])

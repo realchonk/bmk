@@ -31,3 +31,10 @@ extern char *strdup ();
 #ifndef HAVE_STRSEP
 extern char *strsep ();
 #endif
+
+#ifndef HAVE_TIMESPEC
+struct timespec {
+	time_t tv_sec;
+	long tv_nsec;
+};
+#endif
