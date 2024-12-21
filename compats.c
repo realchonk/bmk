@@ -77,11 +77,52 @@ void warn (const char *fmt, ...)
 #endif
 
 #ifndef HAVE_BASENAME
-# error No fallback implementation for basename()
+char *
+basename (s)
+char *s;
+{
+	char *t;
+
+	if (s == NULL || *s == '\0')
+		return ".";
+
+	/* remove any trailing slashes */
+	for (t = s + strlen (s); t > s && t[-1] == '/'; --t);
+
+	if (s == t)
+		return "/";
+
+	*t = '\0';
+	for (; t > s && t[-1] != '/'; --t);
+	return t;
+}
 #endif
 
 #ifndef HAVE_DIRNAME
-# error No fallback implementation for dirname()
+char *
+xdirname (s)
+char *s;
+{
+	char *t;
+
+	if (s == NULL || *s == '\0')
+		return ".";
+
+	/* remove any trailing slashes */
+	for (t = s + strlen (s); t > s && t[-1] == '/'; --t);
+
+	/* remove basename */
+	for (; t > s && t[-1] != '/'; --t);
+
+	/* remove any trailing slashes */
+	for (; t > s && t[-1] == '/'; --t);
+
+	if (s == t)
+		return "/";
+
+	*t = '\0';
+	return s;
+}
 #endif
 
 #ifndef HAVE_STRDUP
