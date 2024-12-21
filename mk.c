@@ -1365,19 +1365,17 @@ struct scope *sc;
 struct path *dir;
 char *cmd;
 {
-	char *args[] = {
-		m_shell.value,
-		"-c",
-		NULL,
-		NULL,
-	};
+	char *args[4];
 	ssize_t i, n;
 	str_t data;
 	pid_t pid;
 	int pipefd[2];
 	char buf[64 + 1];
 
+	args[0] = m_shell.value;
+	args[1] = "-c";
 	args[2] = expand (sc, dir, cmd, NULL);
+	args[3] = NULL;
 
 	if (pipe (pipefd) != 0)
 		err (1, "pipe()");
