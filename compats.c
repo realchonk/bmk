@@ -1,9 +1,18 @@
-# include <string.h>
-# include <stdarg.h>
-# include <stdlib.h>
-# include <stdio.h>
-# include <errno.h>
+#include <string.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <limits.h>
+#include <stdio.h>
+#include <errno.h>
 #include "config.h"
+
+#ifndef PATH_MAX
+# ifdef _POSIX_PATH_MAX
+#  define PATH_MAX _POSIX_PATH_MAX
+# else
+#  define PATH_MAX 256
+# endif
+#endif
 
 #ifndef HAVE_REALLOCARRAY
 void *
@@ -77,7 +86,7 @@ void warn (const char *fmt, ...)
 fnmatch (pattern, string, flags)
 char *pattern, *string;
 {
-	return string;
+	return 0;
 }
 #endif
 
@@ -241,3 +250,6 @@ char **stringp, *delim;
 }
 #endif /* HAVE_STRSEP */
 
+#ifndef HAVE_FMEMOPEN
+# error No fallback implementation for fmemopen()
+#endif

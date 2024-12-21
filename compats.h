@@ -38,3 +38,7 @@ struct timespec {
 	long tv_nsec;
 };
 #endif
+
+#ifndef HAVE_REALPATH
+extern char *realpath ();
+#endif
