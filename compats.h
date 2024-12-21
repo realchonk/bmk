@@ -27,3 +27,7 @@ extern char *dirname ();
 #ifndef HAVE_STRDUP
 extern char *strdup ();
 #endif
+
+#ifndef HAVE_STRSEP
+extern char *strsep ();
+#endif
