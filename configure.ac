@@ -49,6 +49,9 @@ AC_CHECK_HEADERS([err.h fnmatch.h libgen.h sys/time.h])
 AC_CHECK_MEMBER([struct timespec.tv_nsec], [
 	AC_DEFINE([HAVE_TIMESPEC], [1], [Define to 1 if you have the 'timespec' struct])
 ])
+AC_CHECK_MEMBER([struct stat.st_mtim], [
+	AC_DEFINE([HAVE_STAT_MTIM], [1], [Define to 1 if you have the 'st_mtim' field in 'struct stat'])
+])
 
 AS_IF([test "x$ac_cv_func_clock_gettime" = "xno"], [
 	AC_CHECK_FUNC([gettimeofday])

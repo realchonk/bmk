@@ -501,7 +501,12 @@ char *name;
 	path = str_get (&tmpstr);
 
 	if (lstat (path, &st) == 0) {
+#if HAVE_STAT_MTIM
 		out->t = st.st_mtim;
+#else
+		out->t.tv_sec = st.st_mtime;
+		out->tv.nsec = 0;
+#endif
 		out->obj = 1;
 		if (verbose >= 2)
 			printf ("found in obj\n");
