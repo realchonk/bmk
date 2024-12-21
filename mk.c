@@ -32,41 +32,52 @@ static char *cpath, *objdir = NULL;
 static int verbose = 0, cline = 0, conterr = 0;
 static struct timespec time_zero;
 
+#if HAVE_DESIGNATED_DECLARATORS
+# define FIELD(name, value) .name = value
+#else
+# define FIELD(name, value) value
+#endif
+
 static struct macro m_shell = {
-	.next = NULL,
-	.enext = NULL,
-	.prepend = NULL,
-	.name = "SHELL",
-	.value = SHELL,
-	.lazy = 0,
+	FIELD (next, NULL),
+	FIELD (enext, NULL),
+	FIELD (prepend, NULL),
+	FIELD (name, "SHELL"),
+	FIELD (value, SHELL),
+	FIELD (help, NULL),
+	FIELD (lazy, 0),
 }, m_make = {
-	.next = &m_shell,
-	.enext = &m_shell,
-	.prepend = NULL,
-	.name = "MAKE",
-	.value = NULL,
-	.lazy = 0,
+	FIELD (next, &m_shell),
+	FIELD (enext, &m_shell),
+	FIELD (prepend, NULL),
+	FIELD (name, "MAKE"),
+	FIELD (value, NULL),
+	FIELD (help, NULL),
+	FIELD (lazy, 0),
 }, m_dmake = {
-	.next = &m_make,
-	.enext = &m_make,
-	.prepend = NULL,
-	.name = ".MAKE",
-	.value = NULL,
-	.lazy = 0,
+	FIELD (next, &m_make),
+	FIELD (enext, &m_make),
+	FIELD (prepend, NULL),
+	FIELD (name, ".MAKE"),
+	FIELD (value, NULL),
+	FIELD (help, NULL),
+	FIELD (lazy, 0),
 }, m_makeflags = {
-	.next = &m_dmake,
-	.enext = &m_dmake,
-	.prepend = NULL,
-	.name = "MAKEFLAGS",
-	.value = NULL,
-	.lazy = 0,
+	FIELD (next, &m_dmake),
+	FIELD (enext, &m_dmake),
+	FIELD (prepend, NULL),
+	FIELD (name, "MAKEFLAGS"),
+	FIELD (value, NULL),
+	FIELD (help, NULL),
+	FIELD (lazy, 0),
 }, m_dmakeflags = {
-	.next = &m_makeflags,
-	.enext = &m_makeflags,
-	.prepend = NULL,
-	.name = ".MAKEFLAGS",
-	.value = NULL,
-	.lazy = 0,
+	FIELD (next, &m_makeflags),
+	FIELD (enext, &m_makeflags),
+	FIELD (prepend, NULL),
+	FIELD (name, ".MAKEFLAGS"),
+	FIELD (value, NULL),
+	FIELD (help, NULL),
+	FIELD (lazy, 0),
 };
 
 static struct macro *globals = &m_dmakeflags;
@@ -741,12 +752,12 @@ struct expand_ctx {
 };
 
 static struct expand_ctx ctx_null = {
-	.target = NULL,
-	.deps = NULL,
-	.infdeps = NULL,
-	.dep0 = NULL,
-	.free_target = 0,
-	.depth = 0,
+	FIELD (target, NULL),
+	FIELD (deps, NULL),
+	FIELD (infdeps, NULL),
+	FIELD (dep0, NULL),
+	FIELD (free_target, 0),
+	FIELD (depth, 0),
 };
 
 ectx_init (ctx, target, dep0, deps, infdeps)

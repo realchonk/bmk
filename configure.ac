@@ -53,6 +53,23 @@ AC_CHECK_MEMBER([struct stat.st_mtim], [
 	AC_DEFINE([HAVE_STAT_MTIM], [1], [Define to 1 if you have the 'st_mtim' field in 'struct stat'])
 ])
 
+AC_MSG_CHECKING([if the C compiler supports C99's designated initializers])
+mk_have_designated_initializers=no
+AC_COMPILE_IFELSE([
+	AC_LANG_PROGRAM([[
+		struct test {
+			char *name;
+			int value;
+		};
+		static struct test obj = { .name = "test", .value = 42 };
+	]])
+], [
+	mk_have_designated_initializers=yes
+	AC_DEFINE([HAVE_DESIGNATED_INITIALIZERS], [1],
+		  [Define to 1 if your compiler supports C99s designated initializers])
+])
+AC_MSG_RESULT([$mk_have_designated_initializers])
+
 AS_IF([test "x$ac_cv_func_clock_gettime" = "xno"], [
 	AC_CHECK_FUNC([gettimeofday])
 ])
