@@ -281,9 +281,9 @@ char *s, *prefix;
 
 /* PATH LOGIC */
 
-static struct path path_null = { .type = PATH_NULL, .name = NULL };
-static struct path path_super = { .type = PATH_SUPER, .name = NULL };
-static struct path tmppath = { .type = PATH_NAME, .name = NULL };
+static struct path path_null = { FIELD (type, PATH_NULL), FIELD (name, NULL) };
+static struct path path_super = { FIELD (type, PATH_SUPER), FIELD (name, NULL) };
+static struct path tmppath = { FIELD (type, PATH_NAME), FIELD (name, NULL) };
 
 /* return the number of path components (excl. PATH_NULL). */
 size_t
@@ -479,6 +479,12 @@ struct filetime {
 	int obj;
 };
 
+#if HAVE_STAT_MTIM
+# define stat_get_mtime(mt, st) mt = st.st_mtim
+#else
+# define stat_get_mtime(mt, st) mt.tv_sec = st.st_mtime, mt.tv_nsec = 0
+#endif
+
 get_mtime (out, sc, dir, name)
 struct filetime *out;
 struct scope *sc;
@@ -495,7 +501,7 @@ char *name;
 	path = path_cat_str (dir, name);
 
 	if (lstat (path, &st) == 0) {
-		out->t = st.st_mtim;
+		stat_get_mtime (out->t, st);
 		out->obj = 0;
 		if (verbose >= 2)
 			printf ("found\n");
@@ -512,12 +518,7 @@ char *name;
 	path = str_get (&tmpstr);
 
 	if (lstat (path, &st) == 0) {
-#if HAVE_STAT_MTIM
-		out->t = st.st_mtim;
-#else
-		out->t.tv_sec = st.st_mtime;
-		out->tv.nsec = 0;
-#endif
+		stat_get_mtime (out->t, st);
 		out->obj = 1;
 		if (verbose >= 2)
 			printf ("found in obj\n");
@@ -1367,7 +1368,7 @@ char *cmd;
 	char *args[] = {
 		m_shell.value,
 		"-c",
-		expand (sc, dir, cmd, NULL),
+		NULL,
 		NULL,
 	};
 	ssize_t i, n;
@@ -1375,6 +1376,8 @@ char *cmd;
 	pid_t pid;
 	int pipefd[2];
 	char buf[64 + 1];
+
+	args[2] = expand (sc, dir, cmd, NULL);
 
 	if (pipe (pipefd) != 0)
 		err (1, "pipe()");

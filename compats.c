@@ -7,9 +7,9 @@
 
 #ifndef HAVE_REALLOCARRAY
 void *
-reallocarray (ptr, num, len)
+reallocarray (ptr, num, size)
 void *ptr;
-size_t num, len;
+size_t num, size;
 {
 	size_t nb;
 
@@ -93,7 +93,7 @@ char *s;
 
 	len = strlen (s) + 1;
 	out = malloc (len);
-	memcpu (out, s, len);
+	memcmp (out, s, len);
 
 	return out;
 }
