@@ -73,7 +73,12 @@ void warn (const char *fmt, ...)
 #endif /* HAVE_ERR_H */
 
 #ifndef HAVE_FNMATCH
-# error No fallback implementation for fnmatch()
+/* TODO: provide an actual implementation of fnmatch() */
+fnmatch (pattern, string, flags)
+char *pattern, *string;
+{
+	return string;
+}
 #endif
 
 #ifndef HAVE_BASENAME
@@ -141,7 +146,27 @@ char *s;
 #endif
 
 #ifndef HAVE_REALPATH
-# error No fallback implementation for realpath()
+/* TODO: unfuck this unholy shit-infested junk */
+char *
+realpath (path, resolved)
+char *path, *resolved;
+{
+	if (resolved == NULL)
+		resolved = malloc (PATH_MAX);
+
+	if (*path == '/') {
+		/* TODO: this is unsafe and stupid! */
+		strncpy (resolved, path, PATH_MAX - 1);
+		resolved[PATH_MAX - 1] = '\0';
+	} else {
+		/* TODO: this is even more unsafe and stupid!!! */
+		getcwd (resolved, PATH_MAX);
+		strcat (resolved, "/");
+		strcat (resolved, path);
+	}
+
+	return resolved;
+}
 #endif
 
 #ifndef HAVE_STRSEP
