@@ -42,3 +42,7 @@ struct timespec {
 #ifndef HAVE_REALPATH
 extern char *realpath ();
 #endif
+
+#ifndef HAVE_FMEMOPEN
+extern FILE *fmemopen ();
+#endif

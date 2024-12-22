@@ -14,6 +14,10 @@
 # endif
 #endif
 
+#ifndef PACKAGE_NAME
+# define PACKAGE_NAME "mk"
+#endif
+
 #ifndef HAVE_REALLOCARRAY
 void *
 reallocarray (ptr, num, size)
@@ -251,5 +255,26 @@ char **stringp, *delim;
 #endif /* HAVE_STRSEP */
 
 #ifndef HAVE_FMEMOPEN
-# error No fallback implementation for fmemopen()
+FILE *
+fmemopen (buffer, size, mode)
+void *buffer;
+size_t size;
+char *mode;
+{
+	char *path, template[] = "/tmp/" PACKAGE_NAME ".XXXXXX";
+	FILE *file;
+
+	assert (mode != NULL);
+
+	path = mktemp (template);
+	if (path == NULL)
+		return NULL;
+
+	file = fopen (path, "w");
+	if (file == NULL)
+		return NULL;
+
+	fwrite (buffer, 1, size, file);
+	return freopen (path, mode, file);
+}
 #endif
