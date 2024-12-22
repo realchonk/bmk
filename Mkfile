@@ -1,3 +1,6 @@
+# If your make is too ancient to support this syntax,
+# either create config.mk and remove the -,
+# or remove this line;
 -include config.mk
 
 ## C Compiler
