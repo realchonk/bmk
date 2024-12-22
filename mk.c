@@ -2789,7 +2789,7 @@ struct path *prefix;
 	struct dep *dep, xdep;
 	struct build b;
 	char **s;
-	int ec;
+	int ec, rc;
 
 	if (verbose >= 2) {
 		printf ("dir %s", path_to_str (prefix));
@@ -2902,8 +2902,8 @@ struct path *prefix;
 		/* run commands */
 		ectx_file (&ctx, sc, f);
 		for (; *s != NULL; ++s) {
-			if (runcom (sc, prefix, *s, &ctx, name) != 0) {
-				fprintf (stderr, "%s: command failed: %s\n", sc_path_str (sc), *s);
+			if ((rc = runcom (sc, prefix, *s, &ctx, name)) != 0) {
+				fprintf (stderr, "%s: command failed with %d: %s\n", sc_path_str (sc), rc, *s);
 				f->err = 1;
 				return 1;
 			}
@@ -2999,8 +2999,8 @@ struct path *prefix;
 			return ec;
 
 		for (s = f->rule->code; *s != NULL; ++s) {
-			if (runcom (sc->parent, new_prefix, *s, &ctx, name) != 0) {
-				fprintf (stderr, "%s: command failed: %s\n", sc_path_str (sc->parent), *s);
+			if ((rc = runcom (sc->parent, new_prefix, *s, &ctx, name)) != 0) {
+				fprintf (stderr, "%s: command failed with %d: %s\n", sc_path_str (sc->parent), rc, *s);
 				return 1;
 			}
 		}
