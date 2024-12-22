@@ -1423,9 +1423,9 @@ struct path *prefix;
 char *cmd, *rule;
 struct expand_ctx *ctx;
 {
-	char *ecmd;
+	char *ecmd, *args[5];
 	pid_t pid;
-	int q = 0, ws, ign = 0;
+	int i = 0, q = 0, ws, ign = 0;
 
 	if (*cmd == '@') {
 		q = 1;
@@ -1452,27 +1452,30 @@ struct expand_ctx *ctx;
 	if (pid < 0)
 		err (1, "fork()");
 
+	args[i++] = m_shell.value;
+#ifndef HAVE_BROKEN_SHELL
+	if (!ign)
+		args[i++] = "-e";
+#endif
+	args[i++] = "-c";
+	args[i++] = ecmd;
+	args[i] = NULL;
+
 	if (pid == 0) {
 		close (STDIN_FILENO);
 		if (open ("/dev/null", O_RDONLY) != STDIN_FILENO)
 			warn ("%d: open('/dev/null')", STDIN_FILENO);
 
 		if (chdir (path_to_str (prefix)) != 0)
-			err (1, "chdir()");
+			err (126, "chdir()");
 
-		execlp (
-			m_shell.value,
-			m_shell.value, 
-			ign ? "-c" : "-ec",
-			ecmd,
-			NULL
-		);
-		err (1, "exec('%s')", ecmd);
+		execvp (m_shell.value, args);
+		err (127, "exec('%s')", ecmd);
 	} else {
 		free (ecmd);
 		if (wait (&ws) != pid) {
 			warn ("wait()");
-			return 255;
+			return 254;
 		}
 
 		if (!WIFEXITED (ws)) {
