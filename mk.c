@@ -547,7 +547,6 @@ now ()
 	t.tv_sec = tv.tv_sec;
 	t.tv_nsec = tv.tv_sec;
 #else
-# warn No sub-second time resolution for now()
 	time_t tx;
 	tx = time (NULL);
 	t.tv_sec = tx;
@@ -1450,6 +1449,9 @@ struct expand_ctx *ctx;
 	}
 
 	pid = fork ();
+	if (pid < 0)
+		err (1, "fork()");
+
 	if (pid == 0) {
 		close (STDIN_FILENO);
 		if (open ("/dev/null", O_RDONLY) != STDIN_FILENO)

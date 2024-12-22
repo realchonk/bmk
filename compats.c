@@ -1,10 +1,12 @@
+#include "config.h"
+#include <assert.h>
 #include <string.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <limits.h>
 #include <stdio.h>
 #include <errno.h>
-#include "config.h"
 
 #ifndef PATH_MAX
 # ifdef _POSIX_PATH_MAX
@@ -45,6 +47,7 @@ void errx (int eval, const char *fmt, ...)
 	va_start (ap, fmt);
 	fputs (PACKAGE_NAME ": error: ", stderr);
 	vfprintf (stderr, fmt, ap);
+	fputc ('\n', stderr);
 	va_end (ap);
 	exit (eval);
 }
@@ -58,6 +61,7 @@ void err (int eval, const char *fmt, ...)
 	vfprintf (stderr, fmt, ap);
 	if (errno != 0)
 		fprintf (stderr, ": %s", strerror (errno));
+	fputc ('\n', stderr);
 	va_end (ap);
 	exit (eval);
 }
@@ -68,7 +72,8 @@ void warnx (const char *fmt, ...)
 
 	va_start (ap, fmt);
 	fputs (PACKAGE_NAME ": warn: ", stderr);
-	vfprintf (stderr, fmt, ap)
+	vfprintf (stderr, fmt, ap);
+	fputc ('\n', stderr);
 	va_end (ap);
 }
 
@@ -81,6 +86,7 @@ void warn (const char *fmt, ...)
 	vfprintf (stderr, fmt, ap);
 	if (errno != 0)
 		fprintf (stderr, ": %s", strerror (errno));
+	fputc ('\n', stderr);
 	va_end (ap);
 }
 #endif /* HAVE_ERR_H */
@@ -118,7 +124,7 @@ char *s;
 
 #ifndef HAVE_DIRNAME
 char *
-xdirname (s)
+dirname (s)
 char *s;
 {
 	char *t;
