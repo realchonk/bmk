@@ -92,7 +92,7 @@ mk_cv_shell_e2=$?
 AS_IF([test "$mk_cv_shell_e1" = 0 && test "$mk_cv_shell_e2" = 5], [mk_cv_shell_e=yes], [mk_cv_shell_e=no])
 AC_MSG_RESULT([$mk_cv_shell_e])
 
-AS_IF([test "x$mk_cv_shell_c" != 'xno'], [
+AS_IF([test "x$mk_cv_shell_c" != 'xyes'], [
        as_fn_error 1 "$mk_shell is not a working shell"
 ])
 
