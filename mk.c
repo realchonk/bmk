@@ -1,13 +1,20 @@
 #include "config.h"
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/wait.h>
+#if HAVE_SYS_WAIT_H
+# include <sys/wait.h>
+#endif
 #if HAVE_SYS_TIME_H
 # include <sys/time.h>
 #endif
+#if HAVE_FTIME
+# include <sys/timeb.h>
+#endif
 #include <assert.h>
 #include <unistd.h>
-#include <limits.h>
+#if HAVE_LIMITS_H
+# include <limits.h>
+#endif
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -539,13 +546,18 @@ now ()
 {
 	struct timespec t;
 
-#ifdef HAVE_CLOCK_GETTIME
+#if HAVE_CLOCK_GETTIME
 	clock_gettime (CLOCK_REALTIME, &t);
-#elif defined(HAVE_GETTIMEOFDAY)
+#elif HAVE_GETTIMEOFDAY
 	struct timeval tv;
 	gettimeofday (&tv, NULL);
 	t.tv_sec = tv.tv_sec;
 	t.tv_nsec = tv.tv_sec;
+#elif HAVE_FTIME
+	struct timeb tb;
+	ftime (&tb);
+	t.tv_sec = tb.time;
+	t.tv_nsec = (long)tb.millitm * 1000000;
 #else
 	time_t tx;
 	tx = time (NULL);
@@ -611,7 +623,7 @@ char *dir;
 		if (stat (dir, &st) != 0)
 			err (1, "mkdir_p('%s'): stat()", dir);
 
-		if (S_ISDIR (st.st_mode))
+		if ((st.st_mode & S_IFMT) == S_IFDIR)
 			return 0;
 
 		errx (1, "mkdir_p('%s'): Not a directory", dir);
@@ -818,9 +830,9 @@ struct expand_ctx *ctx;
 	return 0;
 }
 
-replace_into (out, s, old, new)
+replace_into (out, s, old, new_str)
 str_t *out;
-char *s, *old, *new;
+char *s, *old, *new_str;
 {
 	size_t len_s, len_old;
 
@@ -833,13 +845,13 @@ char *s, *old, *new;
 	}
 
 	str_write (out, s, len_s - len_old);
-	str_puts (out, new);
+	str_puts (out, new_str);
 	return 0;
 }
 
-replace_all_into (out, s, old, new)
+replace_all_into (out, s, old, new_str)
 str_t *out;
-char *s, *old, *new;
+char *s, *old, *new_str;
 {
 	char *t;
 	int x = 0;
@@ -848,7 +860,7 @@ char *s, *old, *new;
 		if (*t == '\0')
 			continue;
 
-		replace_into (out, t, old, new);
+		replace_into (out, t, old, new_str);
 		str_putc (out, ' ');
 		x = 1;
 	}
@@ -1002,7 +1014,7 @@ struct expand_ctx *ctx;
 	struct macro *m;
 	struct filetime ft;
 	char *orig = *s, *t, *u, *v, *w, *pattern;
-	str_t name, old, new;
+	str_t name, old_str, new_str;
 
 	++ctx->depth;
 	if (ctx->depth >= MAX_EXPAND_DEPTH)
@@ -1033,23 +1045,23 @@ struct expand_ctx *ctx;
 	v = expand_macro (sc, prefix, m, str_get (&name), ctx);
 	str_free (&name);
 
-	str_new (&old);
+	str_new (&old_str);
 
 	while (**s == ':') {
 		++*s;
 
 		/* parse modifier, TODO: move this into a function */
-		for (str_reset (&old); **s != '\0' && **s != '}' && **s != ':' && **s != '='; ) {
+		for (str_reset (&old_str); **s != '\0' && **s != '}' && **s != ':' && **s != '='; ) {
 			switch (**s) {
 			case '$':
 				++*s;
-				subst (&old, sc, prefix, s, ctx);
+				subst (&old_str, sc, prefix, s, ctx);
 				break;
 			case '\\':
 				++*s;
 				/* fallthrough */
 			default:
-				str_putc (&old, **s);
+				str_putc (&old_str, **s);
 				++*s;
 				break;
 			}
@@ -1057,64 +1069,63 @@ struct expand_ctx *ctx;
 
 		if (**s == '=') {
 			++*s;
-			str_new (&new);
 
 			/* TODO: move this into a function */
-			for (str_new (&new); **s != '\0' && **s != '}'; ) {
+			for (str_new (&new_str); **s != '\0' && **s != '}'; ) {
 				switch (**s) {
 				case '$':
 					++*s;
-					subst (&new, sc, prefix, s, ctx);
+					subst (&new_str, sc, prefix, s, ctx);
 					break;
 				case '\\':
 					++*s;
 					/* fallthrough */
 				default:
-					str_putc (&new, **s);
+					str_putc (&new_str, **s);
 					++*s;
 					break;
 				}
 			}
 
-			replace_all_into (out, v, str_get (&old), str_get (&new));
-			str_free (&new);
+			replace_all_into (out, v, str_get (&old_str), str_get (&new_str));
+			str_free (&new_str);
 			goto ret;
-		} else if (strcmp (str_get (&old), "U") == 0) {
-			str_new (&new);
+		} else if (strcmp (str_get (&old_str), "U") == 0) {
+			str_new (&new_str);
 
 			for (t = v; *t != '\0'; ++t)
-				str_putc (&new, toupper (*t));
+				str_putc (&new_str, toupper (*t));
 
 			free (v);
-			v = str_release (&new);
-		} else if (strcmp (str_get (&old), "L") == 0) {
-			str_new (&new);
+			v = str_release (&new_str);
+		} else if (strcmp (str_get (&old_str), "L") == 0) {
+			str_new (&new_str);
 
 			for (t = v; *t != '\0'; ++t)
-				str_putc (&new, tolower (*t));
+				str_putc (&new_str, tolower (*t));
 
 			free (v);
-			v = str_release (&new);
-		} else if (strcmp (str_get (&old), "F") == 0) {
-			str_new (&new);
+			v = str_release (&new_str);
+		} else if (strcmp (str_get (&old_str), "F") == 0) {
+			str_new (&new_str);
 
 			for (t = v; (w = strsep (&t, " \t")) != NULL; ) {
 				if (*w == '\0')
 					continue;
 
 				if (get_mtime (&ft, sc, prefix, w) == 0 && ft.obj) {
-					write_objdir (&new, sc);
-					str_putc (&new, '/');
+					write_objdir (&new_str, sc);
+					str_putc (&new_str, '/');
 				}
-				str_puts (&new, w);
-				str_putc (&new, ' ');
+				str_puts (&new_str, w);
+				str_putc (&new_str, ' ');
 			}
-			str_pop (&new);
+			str_pop (&new_str);
 
 			free (v);
-			v = str_release (&new);
-		} else if (strcmp (str_get (&old), "E") == 0) {
-			str_new (&new);
+			v = str_release (&new_str);
+		} else if (strcmp (str_get (&old_str), "E") == 0) {
+			str_new (&new_str);
 
 			for (t = v; (w = strsep (&t, " \t")) != NULL; ) {
 				if (*w == '\0')
@@ -1124,15 +1135,15 @@ struct expand_ctx *ctx;
 				if (u == NULL || strchr (u, '/') != NULL)
 					continue;
 
-				str_puts (&new, u);
-				str_putc (&new, ' ');
+				str_puts (&new_str, u);
+				str_putc (&new_str, ' ');
 			}
 
-			str_pop (&new);
+			str_pop (&new_str);
 			free (v);
-			v = str_release (&new);
-		} else if (strcmp (str_get (&old), "R") == 0) {
-			str_new (&new);
+			v = str_release (&new_str);
+		} else if (strcmp (str_get (&old_str), "R") == 0) {
+			str_new (&new_str);
 
 			for (t = v; (w = strsep (&t, " \t")) != NULL; ) {
 				if (*w == '\0')
@@ -1142,45 +1153,45 @@ struct expand_ctx *ctx;
 				if (u != NULL && strchr (u, '/') == NULL)
 					*u = '\0';
 
-				str_puts (&new, w);
-				str_putc (&new, ' ');
+				str_puts (&new_str, w);
+				str_putc (&new_str, ' ');
 			}
 
-			str_pop (&new);
+			str_pop (&new_str);
 			free (v);
-			v = str_release (&new);
-		} else if (strcmp (str_get (&old), "H") == 0) {
-			str_new (&new);
+			v = str_release (&new_str);
+		} else if (strcmp (str_get (&old_str), "H") == 0) {
+			str_new (&new_str);
 
 			for (t = v; (w = strsep (&t, " \t")) != NULL; ) {
 				if (*w == '\0')
 					continue;
 
-				str_puts (&new, dirname (w));
-				str_putc (&new, ' ');
+				str_puts (&new_str, dirname (w));
+				str_putc (&new_str, ' ');
 			}
 
-			str_pop (&new);
+			str_pop (&new_str);
 			free (v);
-			v = str_release (&new);
-		} else if (strcmp (str_get (&old), "T") == 0) {
-			str_new (&new);
+			v = str_release (&new_str);
+		} else if (strcmp (str_get (&old_str), "T") == 0) {
+			str_new (&new_str);
 
 			for (t = v; (w = strsep (&t, " \t")) != NULL; ) {
 				if (*w == '\0')
 					continue;
 
-				str_puts (&new, basename (w));
-				str_putc (&new, ' ');
+				str_puts (&new_str, basename (w));
+				str_putc (&new_str, ' ');
 			}
 
-			str_pop (&new);
+			str_pop (&new_str);
 			free (v);
-			v = str_release (&new);
-		} else if (str_get (&old)[0] == 'M') {
-			str_new (&new);
+			v = str_release (&new_str);
+		} else if (str_get (&old_str)[0] == 'M') {
+			str_new (&new_str);
 
-			pattern = str_get (&old) + 1;
+			pattern = str_get (&old_str) + 1;
 
 			for (t = v; (w = strsep (&t, " \t")) != NULL; ) {
 				if (*w == '\0')
@@ -1189,17 +1200,17 @@ struct expand_ctx *ctx;
 				if (fnmatch (pattern, w, 0) != 0)
 					continue;
 
-				str_puts (&new, w);
-				str_putc (&new, ' ');
+				str_puts (&new_str, w);
+				str_putc (&new_str, ' ');
 			}
 
-			str_pop (&new);
+			str_pop (&new_str);
 			free (v);
-			v = str_release (&new);
-		} else if (str_get (&old)[0] == 'N') {
-			str_new (&new);
+			v = str_release (&new_str);
+		} else if (str_get (&old_str)[0] == 'N') {
+			str_new (&new_str);
 
-			pattern = str_get (&old) + 1;
+			pattern = str_get (&old_str) + 1;
 
 			for (t = v; (w = strsep (&t, " \t")) != NULL; ) {
 				if (*w == '\0')
@@ -1208,15 +1219,15 @@ struct expand_ctx *ctx;
 				if (fnmatch (pattern, w, 0) == 0)
 					continue;
 
-				str_puts (&new, w);
-				str_putc (&new, ' ');
+				str_puts (&new_str, w);
+				str_putc (&new_str, ' ');
 			}
 
-			str_pop (&new);
+			str_pop (&new_str);
 			free (v);
-			v = str_release (&new);
+			v = str_release (&new_str);
 		} else {
-			errx (1, "%s: invalid modifier: ':%s' in '${%s'", sc_path_str (sc), str_get (&old), orig);
+			errx (1, "%s: invalid modifier: ':%s' in '${%s'", sc_path_str (sc), str_get (&old_str), orig);
 		}
 	}
 
@@ -1226,7 +1237,7 @@ ret:
 	if (**s != '}')
 		goto invalid;
 	++*s;
-	str_free (&old);
+	str_free (&old_str);
 	free (v);
 	--ctx->depth;
 	return 0;
@@ -3140,7 +3151,7 @@ struct scope *sc;
 
 	fputs ("\nOPTIONS:\n", stderr);
 	fputs ("-C dir                        - chdir(dir)\n", stderr);
-	fputs ("-f file                       - read `file` instead of \"" MAKEFILE "\"\n", stderr);
+	fprintf (stderr, "-f file                       - read `file` instead of \"%s\"\n", MAKEFILE);
 	fputs ("-o objdir                     - put build artifacts into objdir\n", stderr);
 	fputs ("-V var                        - print expanded version of var\n", stderr);
 	fputs ("-h                            - print help page\n", stderr);
@@ -3290,6 +3301,8 @@ char *V;
 main (argc, argv)
 char **argv;
 {
+	extern char *optarg;
+	extern optind;
 	str_t cmdline;
 	struct scope *sc;
 	struct path *path;

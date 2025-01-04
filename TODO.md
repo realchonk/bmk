@@ -39,6 +39,11 @@
     - Large projects with many subdirectories
 - Future Work
 
+# Portability
+- `<limits.h>` and `<sys/wait.h>`
+- `WIFEXITED(ws)` and `WEXITSTATUS(ws)`
+- `<varargs.h>` when `<stdarg.h>` is not available
+
 
 # Options
 -q	        check if anythings needs to be built
@@ -48,11 +53,6 @@
 # Print a warning, if a generated file is not placed into `${.OBJDIR}` when building out-of-tree
 
 # Allow leaf-directories to not have a Makefile
-
-# `-include` or `sinclude`
-Just like `include`, but doesn't error if the file doesn't exist.
-Maybe consider something like this too: `.SUBDIRS: maybe-exists?`
-
 
 # Special macros
 ## Optional: `${@F}`, `${@D}`, `${<F}`, `${<F}`, `${*F}`, `${*D}`, `${^F}`, `${^D}`
@@ -64,14 +64,6 @@ This must be defined at the top of the file.
 
 ## `.PATH:`
 Allow specifying additional `PATH` directories.
-
-
-# Move this project into a separate repo
-- Use `oconfigure` for portability (https://github.com/kristapsdz/oconfigure)
-  - `err(3)` and `errx(3)`
-  - `reallocarray(3)`
-  - `strsep(3)`
-- Rename to `mk` (or `bmk`)
 
 
 # Future TODOs

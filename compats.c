@@ -1,10 +1,11 @@
 #include "config.h"
 #include <assert.h>
 #include <string.h>
-#include <stdarg.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <limits.h>
+#if HAVE_LIMITS_H
+# include <limits.h>
+#endif
 #include <stdio.h>
 #include <errno.h>
 
@@ -14,10 +15,6 @@
 # else
 #  define PATH_MAX 256
 # endif
-#endif
-
-#ifndef PACKAGE_NAME
-# define PACKAGE_NAME "mk"
 #endif
 
 #ifndef HAVE_REALLOCARRAY
@@ -40,54 +37,47 @@ size_t num, size;
 #endif /* HAVE_REALLOCARRAY */
 
 #ifndef HAVE_ERR_H
-void errx (int eval, const char *fmt, ...)
-{
-	va_list ap;
 
-	va_start (ap, fmt);
-	fputs (PACKAGE_NAME ": error: ", stderr);
-	vfprintf (stderr, fmt, ap);
+void errx (eval, fmt, a, b, c, d)
+char *fmt;
+long a, b, c, d;
+{
+	fputs ("mk: error: ", stderr);
+	fprintf (stderr, fmt, a, b, c, d);
 	fputc ('\n', stderr);
-	va_end (ap);
 	exit (eval);
 }
 
-void err (int eval, const char *fmt, ...)
+err (eval, fmt, a, b, c, d)
+char *fmt;
+long a, b, c, d;
 {
-	va_list ap;
-
-	va_start (ap, fmt);
-	fputs (PACKAGE_NAME ": error: ", stderr);
-	vfprintf (stderr, fmt, ap);
+	fputs ("mk: error: ", stderr);
+	fprintf (stderr, fmt, a, b, c, d);
 	if (errno != 0)
 		fprintf (stderr, ": %s", strerror (errno));
 	fputc ('\n', stderr);
-	va_end (ap);
 	exit (eval);
 }
 
-void warnx (const char *fmt, ...)
+warnx (fmt, a, b, c, d)
+char *fmt;
+long a, b, c, d;
 {
-	va_list ap;
-
-	va_start (ap, fmt);
-	fputs (PACKAGE_NAME ": warn: ", stderr);
-	vfprintf (stderr, fmt, ap);
+	fputs ("mk: warn: ", stderr);
+	fprintf (stderr, fmt, a, b, c, d);
 	fputc ('\n', stderr);
-	va_end (ap);
 }
 
-void warn (const char *fmt, ...)
+warn (fmt, a, b, c, d)
+char *fmt;
+long a, b, c, d;
 {
-	va_list ap;
-
-	va_start (ap, fmt);
-	fputs (PACKAGE_NAME ": warn: ", stderr);
-	vfprintf (stderr, fmt, ap);
+	fputs ("mk: warn: ", stderr);
+	fprintf (stderr, fmt, a, b, c, d);
 	if (errno != 0)
 		fprintf (stderr, ": %s", strerror (errno));
 	fputc ('\n', stderr);
-	va_end (ap);
 }
 #endif /* HAVE_ERR_H */
 
@@ -233,10 +223,8 @@ char *
 strsep (stringp, delim)
 char **stringp, *delim;
 {
-	char *s;
-	const char *spanp;
+	char *s, *spanp, *tok;
 	int c, sc;
-	char *tok;
 
 	if ((s = *stringp) == NULL)
 		return NULL;
@@ -267,10 +255,11 @@ void *buffer;
 size_t size;
 char *mode;
 {
-	char *path, template[] = "/tmp/" PACKAGE_NAME ".XXXXXX";
+	char *path, template[16];
 	FILE *file;
 
 	assert (mode != NULL);
+	memcpy (template, "/tmp/tmp.XXXXXX", 15);
 
 	path = mktemp (template);
 	if (path == NULL)
@@ -282,5 +271,30 @@ char *mode;
 
 	fwrite (buffer, 1, size, file);
 	return freopen (path, mode, file);
+}
+#endif
+
+#ifndef HAVE_MEMMOVE
+void *
+memmove (dest, src, len)
+void *dest, *src;
+size_t len;
+{
+	unsigned char *d, *s;
+
+	d = dest;
+	s = src;
+
+	if (d < s) {
+		for (; len > 0; --len)
+			*d++ = *s++;
+	} else if (d > s) {
+		d += len;
+		s += len;
+		for (; len > 0; --len)
+			*--d = *--s;
+	}
+
+	return dest;
 }
 #endif
