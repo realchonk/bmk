@@ -65,6 +65,7 @@ This must be defined at the top of the file.
 ## `.PATH:`
 Allow specifying additional `PATH` directories.
 
+## Allow using spaces instead of tabs
 
 # Future TODOs
 ## Check names for validity
