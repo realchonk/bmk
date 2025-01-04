@@ -1,4 +1,5 @@
-.Dd $Mdocdate$
+.\" Copyright (c) 2025 Benjamin Stürz <benni@stuerz.xyz>
+.Dd January 4, 2025
 .Dt MK 1
 .Os
 .Sh NAME
@@ -19,15 +20,121 @@ It is specifically designed for larger projects,
 for which
 .Xr make 1
 is not suitable enough.
+
+The following options are available:
+.Bl -tag -width indent
+.It Fl h
+Print a help page for the current directory.
+.It Fl hv
+Similar to
+.Fl h ,
+but do so recursively for all subdirectories.
+.It Fl p
+Dump the current directory's makefile.
+.It Fl pv
+Same as
+.Fl p ,
+but do so recursively for all subdirectories.
+.It Fl s
+Do not echo commands, as they are executed.
+Equivalent to specifying '@' before each command in the makefile.
+.It Fl S
+stop processing when an erorr is encountered.
+This is the default behavior and is the opposite of
+.Fl k .
+.It Fl k
+Continue processing after errors are encountered,
+but only on those targets that do not depend on the target whose creating caused the error.
+This options is the opposite of the 
+.Fl S
+option.
+.It Fl v
+Cause
+.Nm
+to print more verbose output.
+This option can be specified multiple times, to increase the verbosity.
+This option is negated by the
+.Fl s
+option.
+.It Fl C Ar dir
+Change the current working directory to
+.Ar dir .
+.It Fl f Ar mk
+Read file
+.Ar mk
+instead of the default makefile.
+Contrary to other implementations, only the last occurence of this option is honored.
+.It Fl o Ar obj
+Put generated artifacts into the
+.Ar obj
+directory.
+.Nm
+will also search for artifacts in this directory.
+This is very useful for out-of-tree builds.
+.It Fl V Ar var
+Print the expanded value of
+.Ar var
+to the standard output and exit.
+.El
 .Sh ENVIRONMENT
 .Sh FILES
-.Sh EXIT STATUS
+.Bl -tag -width Mkfile -compat
+.It Pa Mkfile
+default makefile
+.El
 .Sh EXAMPLES
+.Sh EXIT STATUS
 .Ex -std
 .Sh SEE ALSO
 .Xr make 1
 .Sh STANDARDS
+This implementation of make(1) does not strictly follow any POSIX standard,
+but still most simple Makefiles will work fine.
 .Sh HISTORY
+Over the the long history of make,
+there have been many (competing) implementations of make(1):
+.Bl -bullet -compact
+.It
+Original make from PWB/UNIX 1.0
+.It
+GNU Make
+.It
+Various versions of BSD Make
+.It
+Plan 9's mk(1)
+.El
 .Sh AUTHORS
+.An Benjamin Stürz Aq Mt benni@stuerz.xyz
 .Sh CAVEATS
+.Bl -bullet -compact
+.It
+All paths used as targets/dependencies must be relative.
+.It
+The handling of the `?=` and `??=` is different from POSIX.
+.It
+The way environment and commandline variables are treated is different from POSIX.
+.El
 .Sh BUGS
+.Bl -bullet -compact
+.It
+There exists another project called mk(1).
+.It
+Defining recursive dependencies can lead to
+.Nm
+crashing.
+.It
+Specifying multiple targets at once is broken.
+.It
+This manual is unfinished.
+.El
+.Sh TODO
+.Bl -bullet -compact
+.It
+Create a detailed list of all features.
+.It
+Create a second implementation in Rust, which will support parallel execution of targets.
+.It
+Create a comparison to other makes.
+.It
+See TODO.md file.
+.El
