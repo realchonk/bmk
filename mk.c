@@ -2489,8 +2489,16 @@ char *path;
 	FILE *file;
 
 	file = fopen (path, "r");
-	if (file == NULL)
-		err (1, "fopen(\"%s\")", path);
+	if (file == NULL) {
+		/* err (1, "fopen(\"%s\")", path); */
+		dirx = new (struct directory);
+		dirx->subdirs = NULL;
+		dirx->fhead = NULL;
+		dirx->ftail = NULL;
+		dirx->done = 0;
+		sc->inner.dir = dirx;
+		return 0;
+	}
 
 	if (sc->inner.dir == NULL) {
 		dirx = new (struct directory);
