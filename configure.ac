@@ -1,6 +1,8 @@
 AC_PREREQ([2.64])
 AC_INIT([mk], [0.0], [benni@stuerz.xyz])
 
+# The configure test fails for Xenix, because their `grep` is slightly broken.
+# This tells configure, to skip the `grep` tests.
 AS_IF([test "x$(uname)" = 'xXENIX'], [
        ac_cv_path_GREP='/bin/grep'
 ])
