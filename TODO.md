@@ -39,11 +39,6 @@
     - Large projects with many subdirectories
 - Future Work
 
-# Portability
-- `<limits.h>` and `<sys/wait.h>`
-- `WIFEXITED(ws)` and `WEXITSTATUS(ws)`
-- `<varargs.h>` when `<stdarg.h>` is not available
-
 
 # Options
 -q	        check if anythings needs to be built
