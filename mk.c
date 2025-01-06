@@ -1931,8 +1931,24 @@ struct dep *dep;
 	return file_add_deps (file, dep, dep);
 }
 
+char *
+strip_comment (s)
+char *s;
+{
+	char *t, *o = s;
 
-/* .SUBDIRS: cc make sys */
+	while ((t = strchr (s, '#')) != NULL) {
+		if (t == o || isspace (t[-1])) {
+			*t = '\0';
+			break;
+		}
+		s = t + 1;
+	}
+
+	return o;
+}
+
+/* .SUBDIRS: cc make sys # comment */
 parse_subdirs (sc, dir, s)
 struct scope *sc;
 struct path *dir;
@@ -1940,6 +1956,8 @@ char *s;
 {
 	struct scope *sub;
 	char *subdir, *name, *path;
+
+	strip_comment (s);
 
 	while ((subdir = strsep (&s, " \t")) != NULL) {
 		if (*subdir == '\0')
@@ -1958,7 +1976,7 @@ char *s;
 	return 0;
 }
 
-/* .FOREIGN: libfoo libbar */
+/* .FOREIGN: libfoo libbar # comment */
 parse_foreign (sc, s)
 struct scope *sc;
 char *s;
@@ -1966,6 +1984,8 @@ char *s;
 	struct custom *cs;
 	struct scope *sub;
 	char *subdir, *name;
+
+	strip_comment (s);
 
 	while ((subdir = strsep (&s, " \t")) != NULL) {
 		if (*subdir == '\0')
@@ -1984,13 +2004,15 @@ char *s;
 	return 0;
 }
 
-/* .EXPORTS: CC CFLAGS */
+/* .EXPORTS: CC CFLAGS # comment */
 parse_exports (sc, s)
 struct scope *sc;
 char *s;
 {
 	struct macro *m;
 	char *name;
+
+	strip_comment (s);
 
 	while ((name = strsep (&s, " \t")) != NULL) {
 		if (*name == '\0')
@@ -2331,6 +2353,7 @@ FILE *file;
 			if (!run)
 				goto cont;
 
+			strip_comment (s);
 			t = expand (sc, dir, trim (s + 8), NULL);
 			if (*t == '/') {
 				u = t;
@@ -2347,6 +2370,7 @@ FILE *file;
 			if (!run)
 				goto cont;
 
+			strip_comment (s);
 			t = expand (sc, dir, trim (s + 9), NULL);
 			if (*t == '/') {
 				u = t;
@@ -2390,7 +2414,7 @@ FILE *file;
 
 			tm = new (struct template);
 			tm->next = sc_dir (sc)->templates;
-			tm->name = strdup (t);
+			tm->name = strdup (strip_comment (t));
 
 			for (free (s); (s = readline (file, &cline)) != NULL; free (s)) {
 				if (is_directive (NULL, s, "endt") || is_directive (NULL, s, "endtemplate"))
@@ -2410,7 +2434,7 @@ FILE *file;
 		} else if (is_directive (&t, s, "expand")) {
 			if (!run)
 				goto cont;
-			tm = find_template (sc, t);
+			tm = find_template (sc, strip_comment (t));
 			if (tm == NULL)
 				errx (1, "%s:%d: no such template: %s", cpath, cline, t);
 			tfile = fmemopen (tm->text, strlen (tm->text), "r");
@@ -2418,7 +2442,7 @@ FILE *file;
 			fclose (tfile);
 		} else if (is_target (&t, s, ".DEFAULT")) {
 			if (run)
-				sc_dir (sc)->default_file = strdup (t);
+				sc_dir (sc)->default_file = strdup (strip_comment (t));
 		} else if (is_target (NULL, s, ".POSIX")) {
 			if (run)
 				warnx ("%s:%d: this is not a POSIX-compatible make", path, cline);
