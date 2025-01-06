@@ -1,4 +1,3 @@
-# check if shell accepts `-c cmd` and `-e`
 AC_PREREQ([2.64])
 AC_INIT([mk], [0.0], [benni@stuerz.xyz])
 
@@ -93,7 +92,11 @@ AS_IF([test "$mk_cv_shell_e1" = 0 && test "$mk_cv_shell_e2" = 5], [mk_cv_shell_e
 AC_MSG_RESULT([$mk_cv_shell_e])
 
 AS_IF([test "x$mk_cv_shell_c" != 'xyes'], [
-       as_fn_error 1 "$mk_shell is not a working shell"
+	as_fn_error 1 "$mk_shell is not a working shell"
+])
+
+AS_IF([test "x$mk_cv_shell_e" != 'xyes'], [
+	AC_DEFINE_UNQUOTED([HAVE_BROKEN_SHELL], [1], [Does your shell support '-e' properly?])
 ])
 
 AC_DEFINE_UNQUOTED([SHELL], ["$mk_shell"], [Default value for SHELL variable])
