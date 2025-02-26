@@ -5,3 +5,4 @@ mk
 configure
 build-aux
 autom4te.cache
+compile_flags.txt
