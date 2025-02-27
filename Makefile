@@ -16,7 +16,9 @@ include config.mk
 # LDFLAGS ?=
 
 ## Installation directory
-# PREFIX ?= /usr/local
+prefix ?= /usr/local
+
+bindir ?= ${prefix}/bin
 
 ## Build mk
 all: mk
@@ -32,7 +34,7 @@ configure: configure.ac
 
 ## Remove build artifacts
 clean:
-	rm -f mk
+	rm -f mk compile_flags.txt
 
 ## Remove even more stuff
 distclean: clean
@@ -41,9 +43,13 @@ distclean: clean
 
 ## Install mk into ${PREFIX}
 install: mk
-	mkdir -p ${DESTDIR}${PREFIX}/bin
-	cp -f $< ${DESTDIR}${PREFIX}/bin/
+	mkdir -p ${DESTDIR}${bindir}
+	cp -f mk ${DESTDIR}${bindir}/
 
 mk: mk.c compats.c mk.h
 	${CC} -o mk.tmp mk.c compats.c ${CFLAGS} ${CPPFLAGS} ${LDFLAGS}
 	mv mk.tmp mk
+
+## Generate compile_flags.txt, for use with clangd
+compile_flags.txt:
+	printf '%s\n' "${CFLAGS}" | tr ' ' '\n' > $@

@@ -16,7 +16,9 @@ CPPFLAGS ?= -D_GNU_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=700
 LDFLAGS ?=
 
 ## Installation directory
-PREFIX ?= /usr/local
+prefix ?= /usr/local
+
+bindir ?= ${prefix}/bin
 
 ## Build mk
 all: mk
@@ -41,8 +43,8 @@ distclean: clean
 
 ## Install mk into ${PREFIX}
 install: mk
-	mkdir -p ${DESTDIR}${PREFIX}/bin
-	cp -f $< ${DESTDIR}${PREFIX}/bin/
+	mkdir -p ${DESTDIR}${bindir}
+	cp -f mk ${DESTDIR}${bindir}/
 
 mk: mk.c compats.c mk.h
 	${CC} -o mk.tmp mk.c compats.c ${CFLAGS} ${CPPFLAGS} ${LDFLAGS}
