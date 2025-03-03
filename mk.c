@@ -1268,6 +1268,7 @@ struct path *prefix;
 char **s;
 struct expand_ctx *ctx;
 {
+	char buf[3];
 	char *t;
 	int ch;
 
@@ -1299,6 +1300,14 @@ struct expand_ctx *ctx;
 	case '(':
 		errx (1, "%s: syntax error: $(...) syntax is reserved for future use, please use ${...} instead.", sc_path_str (sc));
 	default:
+		if (isalpha (ch)) {
+			buf[0] = ch;
+			buf[1] = '}';
+			buf[2] = '\0';
+			t = buf;
+			subst2 (out, sc, prefix, &t, ctx);
+			break;
+		}
 		errx (1, "%s: syntax error: invalid escape sequence: $%c%s", sc_path_str (sc), ch, *s);
 	}
 
