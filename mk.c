@@ -1014,6 +1014,7 @@ struct expand_ctx *ctx;
  * ${name:m1:m2...}	multiple modifiers can be combined
  * ${name:Mpattern}	select only words that match pattern
  * ${name:Npattern}	opposite of :Mpattern
+ * ${name:Jstring}	join words by string
  * TODO:
  * somehow make this function shorter
  */
@@ -1031,6 +1032,7 @@ struct expand_ctx *ctx;
 	struct filetime ft;
 	char *orig = *s, *t, *u, *v, *w, *pattern;
 	str_t name, old_str, new_str;
+	int first;
 
 	++ctx->depth;
 	if (ctx->depth >= MAX_EXPAND_DEPTH)
@@ -1240,6 +1242,22 @@ struct expand_ctx *ctx;
 			}
 
 			str_pop (&new_str);
+			free (v);
+			v = str_release (&new_str);
+		} else if (str_get (&old_str)[0] == 'J') {
+			str_new (&new_str);
+			pattern = str_get (&old_str) + 1;
+			first = 1;
+
+			for (t = v; (w = strsep (&t, " \t")) != NULL; first = 0) {
+				if (*w == '\0')
+					continue;
+
+				if (!first)
+					str_puts (&new_str, pattern);
+				str_puts (&new_str, w);
+			}
+
 			free (v);
 			v = str_release (&new_str);
 		} else {
