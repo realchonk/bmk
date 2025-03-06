@@ -3,6 +3,5 @@ mk
 *.core
 *.swp
 configure
-build-aux
 autom4te.cache
 compile_flags.txt

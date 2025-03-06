@@ -26,7 +26,6 @@ all: mk
 ## Generate a configure script and Makefile
 configure: configure.ac
 	AUTOCONF_VERSION=2.69 autoreconf -i
-	cp /usr/local/share/automake-$${AUTOMAKE_VERSION}/install-sh build-aux/
 	rm -rf autom4te.cache
 	sed -i 's/\([ !]\)defined \([a-zA-Z0-9_$$]*\)/\1defined(\2)/g' configure
 	rm -f Makefile
@@ -38,7 +37,7 @@ clean:
 
 ## Remove even more stuff
 distclean: clean
-	rm -rf build-aux autom4te.cache
+	rm -rf autom4te.cache
 	rm -f configure config.status config.log config.h.in config.h config.mk aclocal.m4 *~
 
 ## Install mk into ${PREFIX}
