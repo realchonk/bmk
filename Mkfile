@@ -27,7 +27,9 @@ all: mk
 configure: configure.ac
 	AUTOCONF_VERSION=2.69 AUTOMAKE_VERSION=1.16 autoreconf -i
 	rm -rf autom4te.cache
-	sed -i 's/\([ !]\)defined \([a-zA-Z0-9_$$]*\)/\1defined(\2)/g' configure
+	sed 's/\([ !]\)defined \([a-zA-Z0-9_$$]*\)/\1defined(\2)/g' configure > configure.new
+	mv configure.new configure
+	chmod +x configure
 	rm -f Makefile
 	sed 's/^-include config.mk/include config.mk/; s/^[A-Z]* ?=.*$$/# &/' Mkfile > Makefile
 
