@@ -71,6 +71,7 @@ Allowed charset for file names: `[a-zA-Z_.-]+`
 ## Write a specification
 ## Create a freestanding version, written in Rust, so that other projects can use this make
 ## Run commands in a rule in the same shell
+## CI for more platforms (if possible)
 
 # Known Bugs
 ## Unnamed bug #1
