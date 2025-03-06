@@ -77,13 +77,115 @@ Print the expanded value of
 to the standard output and exit.
 .El
 .Sh DEPENDENCY LINES
-TODO
+Dependency lines consist of one or more targets,
+and zero or more prerequisites:
+.Bd -ragged -offset ident
+.Ar target ... : Ns Op Ar prerequisite ...
+.Ed
+.Pp
+This creates a relationship, where the targets
+.Dq depend
+on the prerequisites, and are built from them.
+.Pp
+Targets must consist of only characters in
+.Dq [a-zA-Z._-] .
+Dependencies can additionally contain
+.Dq /
+characters, but the resulting paths must be relative,
+and cannot cross directories, that are outside the build.
 .Sh SHELL COMMANDS
-TODO
+Each target may have associated with it a series of shell commands,
+normally used to build the target.
+While several dependency lines may name the same target,
+only one of these dependency lines may be followed by shell commands,
+and thus define a complete target rule.
+.Pp
+If a command line begins with one of the characters,
+.Sq Ic @
+or
+.Sq Ic \- ,
+the command is treated specially:
+.Bl -tag -width '@'
+.It Sq Ic @
+causes the command not to be echoed before it is executed.
+.It Sq Ic \-
+causes any non-zero exit status of the command line to be ignored.
+.El
+.Pp
+Commands are executed using
+.Pa /bin/sh
+in
+.Qq set -e
+mode, unless
+.Sq Ic \-
+is specified, or the shell is broken (in case of Minix-vmd).
 .Sh INFERENCE RULES
 TODO
 .Sh VARIABLE ASSIGNMENTS
 TODO
+.Pp
+Variables in
+.Nm
+are much like variables in the shell:
+.Bd -ragged -offset ident
+.Ar name No = Ar value
+.Ed
+.Pp
+They are also sometimes refered to as
+.Sq macros .
+Variable names can only consist of
+.Dq [a-zA-Z0-9._-]
+and may not start with a digit or hyphen.
+By tradition names consist of all upper-case letters.
+.Pp
+The following operators can be used to define variables:
+.Bl -tag -width Ds
+.It Ic \&=
+Assign the value to the variable.
+Any previous value is overriden.
+.It Ic \&:=
+Like
+.Dq \&= ,
+but expand the value, before assigning it.
+.It Ic \&::=
+Currently equivalent to
+.Dq := .
+.It Ic \&+=
+Append the value to the current value of the variable.
+.It Ic \&?=
+Assign the value, if it is not already defined.
+.It Ic \&??=
+Similar to
+.Dq \&?= ,
+but take environment variables into account.
+.It Ic \&!=
+Perform variable expansion and pass the result to the shell for execution.
+The output of the shell command will be assigned to the variable.
+.El
+.Pp
+Any whitespace before or after the assigned
+.Ar value
+will be removed;
+if the value is being appended,
+a single space is inserted between the previous contents of the variable and the appended value.
+.Pp
+Variables are expanded by surrounding the variable name with curly braces
+.Pq Ql {}
+and preceding it with a doller sign
+.Pq Ql $ .
+If the variable name consists of only a single letter,
+the surrounding braces can be omitted.
+.Pp
+Variables can be made visible into subdirectories using the
+.Dq .EXPORT:
+directive.
+.Ss SPECIAL VARIABLES
+TODO
+.Ss MODIFIERS
+The following modifiers can be applied to variable expansions:
+TODO
+.Pp
+TODO: Examples
 .Sh INCLUDE STATEMENTS
 TODO
 .Sh SUBDIRECTORIES
@@ -91,9 +193,17 @@ TODO
 .Sh CONDITIONALS
 TODO
 .Sh COMMENTS
-TODO
+Comments begin with a single hash
+.Pq Ql \&#
+character,
+anywhere but in a shell command line, and continue to the end of the line.
+A
+.Pq \&#
+character within a shell command line will be interpreted as a comment by the shell.
 .Ss DOCUMENTATION COMMENTS
-TODO
+Documentation comments are a special variant of comments,
+which can only appear before rules and macros.
+TODO: see -h option
 .Sh SPECIAL TARGETS
 TODO
 .Sh ENVIRONMENT
@@ -151,6 +261,8 @@ This manual is unfinished.
 .El
 .Sh TODO
 .Bl -bullet -compact
+.It
+Run commands of the same rule in the same shell, instead of creating a new shell for every command line.
 .It
 Create a detailed list of all features.
 .It
