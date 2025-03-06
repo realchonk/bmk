@@ -20,6 +20,8 @@ prefix ?= /usr/local
 
 bindir ?= ${prefix}/bin
 
+mandir ?= ${prefix}/share/man
+
 ## Build mk
 all: mk
 
@@ -43,9 +45,10 @@ distclean: clean
 	rm -f configure config.status config.log config.h.in config.h config.mk aclocal.m4 *~
 
 ## Install mk into ${PREFIX}
-install: mk
-	mkdir -p ${DESTDIR}${bindir}
+install: mk mk.1
+	mkdir -p ${DESTDIR}${bindir} ${DESTDIR}${mandir}/man1
 	cp -f mk ${DESTDIR}${bindir}/
+	cp -f mk.1 ${DESTDIR}${mandir}/man1/
 
 mk: mk.c compats.c mk.h
 	${CC} -o mk.tmp mk.c compats.c ${CFLAGS} ${CPPFLAGS} ${LDFLAGS}
