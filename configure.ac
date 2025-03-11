@@ -9,6 +9,7 @@ AS_IF([test "x$(uname)" = 'xXENIX'], [
 
 AC_CONFIG_SRCDIR([mk.c])
 AC_CONFIG_AUX_DIR([build-aux])
+AC_CONFIG_MACRO_DIR([m4])
 
 AC_DEFUN([MK_CHECK_COMPILE_FLAG], [
 	AX_CHECK_COMPILE_FLAG([$1], [CFLAGS="${CFLAGS} $1"])

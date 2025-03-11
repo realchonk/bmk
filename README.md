@@ -2,7 +2,6 @@
 Generating the configure script requires a few dependencies:
 - autoconf (>= 2.64, for extra portability version 2.64 should be used, as later versions make more assumptions about the host)
 - automake (any somewhat recent version should work, as automake itself isn't being used directly)
-- autoconf-archive (any version from 2010 onwards should work)
 
 # Bootstrap
 ```sh
