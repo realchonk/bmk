@@ -1,6 +1,8 @@
 image: openbsd/latest
 sources:
   - https://github.com/realchonk/bmk
+packages:
+  - tcc
 tasks:
   - install-deps: |
       pkg_info -Q autoconf | grep '^autoconf-2.69' | xargs doas pkg_add
@@ -13,6 +15,12 @@ tasks:
       make
       doas make install
       make distclean
+  - build-tcc: |
+      cd bmk
+      mk configure
+      CC=tcc ./configure
+      mk
+      doas mk install
   - build-self: |
       cd bmk
       mk configure
