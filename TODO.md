@@ -72,6 +72,21 @@ build projects that use bmk:
 - [ ] [286bsd](https://got.stuerz.xyz/?action=summary&path=286bsd.git)
 - [ ] [linurv](https://got.stuerz.xyz/?action=summary&path=linurv.git) (linurv first needs to support bmk)
 
+## More platforms
+| status             | target                                    |
+|--------------------|-------------------------------------------|
+| amd64-alpine-linux | done                                      |
+| amd64-freebsd      | done                                      |
+| amd64-netbsd       | done                                      |
+| amd64-openbsd      | done                                      |
+| arm64-macos        | done                                      |
+| hppa-*             | hardware available                        |
+| ppc64-*            | hardware available                        |
+| sparc64-*          | hardware available                        |
+| i386-xenix         | no hardware                               |
+| i386-minix(-vmd)   | no hardware                               |
+| i386-*             | no hardware, maybe possible with multilib |
+
 # Future TODOs
 ## Check names for validity
 Allowed charset for variable names: `[a-zA-Z_.]+`
