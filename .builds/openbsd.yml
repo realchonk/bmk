@@ -21,6 +21,7 @@ tasks:
       CC=tcc ./configure
       mk
       doas mk install
+      mk distclean
   - build-self: |
       cd bmk
       mk configure
