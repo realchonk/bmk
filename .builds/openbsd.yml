@@ -1,6 +1,4 @@
 image: openbsd/latest
-packages:
-  - autoconf-archive
 sources:
   - https://github.com/realchonk/bmk
 tasks:

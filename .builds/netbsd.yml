@@ -2,7 +2,6 @@ image: netbsd/latest
 packages:
   - autoconf
   - automake
-  - autoconf-archive
 sources:
   - https://github.com/realchonk/bmk
 tasks:
