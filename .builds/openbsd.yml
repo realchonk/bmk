@@ -30,7 +30,8 @@ tasks:
       mk
       doas mk install
   - build-desktop: |
+      # build one of my projects that use bmk, to verify that everything works
       cd desktop
       mk -o obj
-      mk -o obj DESTDIR=$PWD/_install install
+      mk -o obj DESTDIR=$PWD/_install install install-etc
       find _install
