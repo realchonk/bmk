@@ -84,16 +84,6 @@ Allowed charset for file names: `[a-zA-Z_.-]+`
 ## CI for more platforms (if possible)
 
 # Known Bugs
-## Unnamed bug #1
-### Problem
-`clean: ${.SUBDIRS:=/clean}`
-is interpreted as macro definition:
-`clean: ${.SUBDIRS:` = `/clean}`
-### Workaround
-```make
-CLEAN = ${.SUBDIRS:=/clean}
-`clean: ${CLEAN}`
-```
 ## Crash #1
 ```make
 a:
