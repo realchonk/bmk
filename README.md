@@ -26,11 +26,11 @@ bmk can be built without autoconf, but this requires writing your own config.h a
 This might be necessary on platforms that are too broken to run a configure script, such as Minix-vmd.
 
 # Regularly Tested Platforms (CI)
-- amd64-openbsd
-- amd64-freebsd
-- amd64-netbsd
-- amd64-alpine-linux
-- arm64-macos
+- [amd64-openbsd](https://builds.sr.ht/~realchonk/bmk/commits/main/openbsd)
+- [amd64-freebsd](https://builds.sr.ht/~realchonk/bmk/commits/main/freebsd)
+- [amd64-netbsd](https://builds.sr.ht/~realchonk/bmk/commits/main/netbsd)
+- [amd64-alpine-linux](https://builds.sr.ht/~realchonk/bmk/commits/main/alpine)
+- [arm64-macos](https://cirrus-ci.com/github/realchonk/bmk/main)
 
 ## Other Platforms, which have been tested at some point
 - powerpc64-freebsd
