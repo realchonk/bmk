@@ -23,7 +23,7 @@
 #if HAVE_SYS_TIME_H
 # include <sys/time.h>
 #endif
-#if HAVE_FTIME
+#if HAVE_FTIME && HAVE_SYS_TIMEB_H
 # include <sys/timeb.h>
 #endif
 #include <assert.h>
