@@ -1,6 +1,7 @@
 image: openbsd/latest
 sources:
   - https://github.com/realchonk/bmk
+  - ssh://anon@stuerz.xyz:2269/desktop.git
 packages:
   - tcc
 tasks:
@@ -28,3 +29,9 @@ tasks:
       ./configure
       mk
       doas mk install
+  - build-desktop: |
+      # build one of my projects that use bmk, to verify that everything works
+      cd desktop
+      mk -o obj
+      mk -o obj DESTDIR=$PWD/_install install install-etc
+      find _install

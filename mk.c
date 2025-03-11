@@ -2360,6 +2360,38 @@ char **out, *s, *name;
 	return 1;
 }
 
+char *
+parse_def (s, name, value)
+char *s, **name, **value;
+{
+	char *i;
+
+	for (i = s; *i != '\0'; ++i) {
+		switch (*i) {
+		case '$':
+			switch (*++i) {
+			case '\0':
+				abort ();
+			case '{':
+				for (++i; *i != '\0' && *i != '}'; ++i);
+				if (*i == '\0')
+					abort ();
+				break;
+			default:
+				++i;
+				break;
+			}
+			break;
+		case ':':
+		case '=':
+			*name = s;
+			*value = i + 1;
+			return i;
+		}
+	}
+	return NULL;
+}
+
 do_parse (sc, dir, path, file)
 struct scope *sc;
 struct path *dir;
@@ -2370,7 +2402,7 @@ FILE *file;
 	struct template *tm;
 	struct rule *r = NULL;
 	size_t len, cap, iflen = 0;
-	char *s, *t, *u, *help = NULL;
+	char *s, *t, *u, *name, *value, *help = NULL;
 	char ifstack[MAX_IFSTACK];
 	int x, run, oldcline;
 	FILE *tfile;
@@ -2515,27 +2547,33 @@ FILE *file;
 
 			r->code[len++] = strdup (s + 1);
 			r->code[len] = NULL;
-		} else if ((t = strchr (s, '=')) != NULL) {
+		} else if ((t = parse_def (s, &name, &value)) != NULL) {
 			if (!run)
 				goto cont;
 
-			if (s == t)
-				errx (1, "%s:%d: invalid macro name", path, cline);
+			switch (*t) {
+			case ':':
+				r = parse_rule (sc, dir, s, t, help);
+				if (r == NULL)
+					goto cont;
 
-			*t = '\0';
-			parse_assign (sc, dir, s, t, help);
-		} else if ((t = strchr (s, ':')) != NULL) {
-			if (!run)
-				goto cont;
+				len = 0;
+				cap = 1;
+				r->code = calloc (cap + 1, sizeof (char *));
+				r->code[0] = NULL;
+				break;
+			case '=':
+				/* TODO: write a proper function for checking macro names */
+				if (*t == '\0')
+					errx (1, "%s:%d: invalid macro name", path, cline);
 
-			r = parse_rule (sc, dir, s, t, help);
-			if (r == NULL)
-				goto cont;
+				*t = '\0';
 
-			len = 0;
-			cap = 1;
-			r->code = calloc (cap + 1, sizeof (char *));
-			r->code[0] = NULL;
+				parse_assign (sc, dir, s, t, help);
+				break;
+			default:
+				abort ();
+			}
 		} else {
 			warnx ("%s:%d: invalid line: %s", path, cline, s);
 		}
