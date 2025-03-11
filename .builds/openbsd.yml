@@ -1,6 +1,7 @@
 image: openbsd/latest
 sources:
   - https://github.com/realchonk/bmk
+  - ssh://anon@stuerz.xyz:2269/desktop.git
 packages:
   - tcc
 tasks:
@@ -28,3 +29,6 @@ tasks:
       ./configure
       mk
       doas mk install
+  - build-desktop: |
+      cd desktop
+      mk
