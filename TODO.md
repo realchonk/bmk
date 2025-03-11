@@ -62,6 +62,10 @@ Allow specifying additional `PATH` directories.
 
 ## Allow using spaces instead of tabs
 
+# Portability
+- don't rely on implicit int
+- allow const
+
 # Future TODOs
 ## Check names for validity
 Allowed charset for variable names: `[a-zA-Z_.]+`
