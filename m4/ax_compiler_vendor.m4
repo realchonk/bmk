@@ -76,6 +76,7 @@ AC_DEFUN([AX_COMPILER_VENDOR], [dnl
 		pathscale:	__PATHCC__,__PATHSCALE__
 		clang:		__clang__
 		cray:		_CRAYC
+		pcc:		__PCC__
 		fujitsu:	__FUJITSU
 		sdcc:		SDCC,__SDCC
 		sx:		_SX

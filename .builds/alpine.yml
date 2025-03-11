@@ -2,6 +2,7 @@ image: alpine/latest
 packages:
   - autoconf
   - automake
+  - pcc
 sources:
   - https://github.com/realchonk/bmk
 tasks:
@@ -13,6 +14,13 @@ tasks:
       make
       sudo make install
       make distclean
+  - build-pcc: |
+      cd bmk
+      mk configure
+      CC=pcc ./configure
+      mk
+      sudo mk install
+      mk distclean
   - build-self: |
       cd bmk
       mk configure

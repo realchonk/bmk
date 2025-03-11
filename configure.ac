@@ -45,6 +45,9 @@ AS_IF([test "x$enable_warnings" != "xno"], [
 	clang)
 		MK_CHECK_COMPILE_FLAG([-Wno-deprecated-non-prototype])
 		;;
+	pcc)
+		MK_CHECK_COMPILE_FLAG([-Wno-missing-prototypes])
+		;;
 	esac
 ], [
 	MK_CHECK_COMPILE_FLAG([-w])
