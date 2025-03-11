@@ -66,6 +66,12 @@ Allow specifying additional `PATH` directories.
 - don't rely on implicit int
 - allow const
 
+# CI
+build projects that use bmk:
+- [x] [desktop](https://got.stuerz.xyz/?action=summary&path=desktop.git)
+- [ ] [286bsd](https://got.stuerz.xyz/?action=summary&path=286bsd.git)
+- [ ] [linurv](https://got.stuerz.xyz/?action=summary&path=linurv.git) (linurv first needs to support bmk)
+
 # Future TODOs
 ## Check names for validity
 Allowed charset for variable names: `[a-zA-Z_.]+`
