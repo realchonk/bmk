@@ -31,4 +31,6 @@ tasks:
       doas mk install
   - build-desktop: |
       cd desktop
-      mk
+      mk -o obj
+      mk -o obj DESTDIR=$PWD/_install install
+      find _install
