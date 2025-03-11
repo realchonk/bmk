@@ -1,0 +1,18 @@
+task:
+  name: MacOS
+  macos_instance:
+    image: ghcr.io/cirruslabs/macos-runner:sonoma
+  setup_script:
+    - brew install autoconf automake autoconf-archive
+  bootstrap_script:
+    - touch config.mk
+    - make configure
+    - ./configure
+    - make
+    - sudo make install
+    - make distclean
+  selftest_script:
+    - mk configure
+    - ./configure
+    - mk
+    - sudo mk install
