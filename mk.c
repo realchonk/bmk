@@ -2689,7 +2689,7 @@ char *makefile;
 			if (strcmp (sc->name, name) == 0) {
 				if (sc->type != SC_DIR)
 					errx (1, "%s: invalid type", path_to_str (mfpath));
-				goto parse;
+				goto parselbl;
 			}
 		}
 
@@ -2702,7 +2702,7 @@ char *makefile;
 		sc->inner.dir = NULL;
 	}
 
-parse:
+parselbl:
 	sc->makefile = makefile;
 	sc->parent = parent;
 	path = strdup (path_to_str (mfpath));
