@@ -115,6 +115,6 @@ AC_DEFUN([AX_COMPILER_VENDOR], [dnl
 	    ]])], [break])
 	done
 
-	ax_cv_[]_AC_LANG_ABBREV[]_compiler_vendor=`echo $vendor | cut -d: -f1`
+	ax_cv_[]_AC_LANG_ABBREV[]_compiler_vendor=`echo $vendor | sed 's/:.*//'`
     ])
 ])dnl
