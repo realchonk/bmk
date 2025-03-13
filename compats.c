@@ -37,10 +37,16 @@
 # endif
 #endif
 
+#if __STDC__ || HAVE_VOID_PTR
+#define VOID void
+#else
+#define VOID char
+#endif
+
 #ifndef HAVE_REALLOCARRAY
-void *
+VOID *
 reallocarray (ptr, num, size)
-void *ptr;
+VOID *ptr;
 size_t num, size;
 {
 	size_t nb;
@@ -58,7 +64,7 @@ size_t num, size;
 
 #ifndef HAVE_ERR_H
 
-void errx (eval, fmt, a, b, c, d)
+errx (eval, fmt, a, b, c, d)
 char *fmt;
 long a, b, c, d;
 {
@@ -275,7 +281,7 @@ char **stringp, *delim;
 #ifndef HAVE_FMEMOPEN
 FILE *
 fmemopen (buffer, size, mode)
-void *buffer;
+VOID *buffer;
 size_t size;
 char *mode;
 {
@@ -299,9 +305,9 @@ char *mode;
 #endif
 
 #ifndef HAVE_MEMMOVE
-void *
+VOID *
 memmove (dest, src, len)
-void *dest, *src;
+VOID *dest, *src;
 size_t len;
 {
 	unsigned char *d, *s;
