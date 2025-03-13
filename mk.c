@@ -2371,14 +2371,13 @@ char *s, **name, **value;
 		case '$':
 			switch (*++i) {
 			case '\0':
-				abort ();
+				return NULL;
 			case '{':
 				for (++i; *i != '\0' && *i != '}'; ++i);
-				if (*i == '\0')
-					abort ();
+				if (*i != '}')
+					return NULL;
 				break;
 			default:
-				++i;
 				break;
 			}
 			break;
@@ -2551,6 +2550,9 @@ FILE *file;
 			if (!run)
 				goto cont;
 
+			if (trim (name) == t)
+				goto invalid;
+
 			switch (*t) {
 			case ':':
 				r = parse_rule (sc, dir, s, t, help);
@@ -2575,6 +2577,7 @@ FILE *file;
 				abort ();
 			}
 		} else {
+		invalid:
 			warnx ("%s:%d: invalid line: %s", path, cline, s);
 		}
 
