@@ -189,7 +189,11 @@ char *path, *resolved;
 		resolved[PATH_MAX - 1] = '\0';
 	} else {
 		/* TODO: this is even more unsafe and stupid!!! */
+#if HAVE_GETCWD
 		getcwd (resolved, PATH_MAX);
+#else
+		getwd (resolved);
+#endif
 		strcat (resolved, "/");
 		strcat (resolved, path);
 	}
