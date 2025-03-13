@@ -1,4 +1,4 @@
-AC_PREREQ([2.64])
+AC_PREREQ([2.52])
 AC_INIT([mk], [0.0], [benni@stuerz.xyz])
 
 # The configure test fails for Xenix, because their `grep` is slightly broken.
@@ -9,10 +9,31 @@ AS_IF([test "x$(uname)" = 'xXENIX'], [
 
 AC_CONFIG_SRCDIR([mk.c])
 AC_CONFIG_AUX_DIR([build-aux])
-AC_CONFIG_MACRO_DIR([m4])
+m4_include([m4/ax_compiler_vendor.m4])
 
+# MK_CHECK_COMPILE_FLAG(FLAG)
 AC_DEFUN([MK_CHECK_COMPILE_FLAG], [
-	AX_CHECK_COMPILE_FLAG([$1], [CFLAGS="${CFLAGS} $1"])
+	AS_VAR_PUSHDEF([CACHEVAR], [mk_cv_check_compile_flags_$1])
+	AC_CACHE_CHECK([whether the C compiler accepts $1], CACHEVAR, [
+		mk_check_save_flags="$CFLAGS"
+		CFLAGS="$CFLAGS $1 -Werror"
+		AC_COMPILE_IFELSE([AC_LANG_PROGRAM()],
+			[AS_VAR_SET(CACHEVAR, [yes])],
+			[AS_VAR_SET(CACHEVAR, [no])])
+		CFLAGS="$mk_check_save_flags"
+	])
+	AS_IF([test x$CACHEVAR = xyes], [CFLAGS="$CFLAGS $1"], [:])
+	AS_VAR_POPDEF([CACHEVAR])
+])
+
+# This is only available starting with autoconf-2.58
+m4_define([AS_HELP_STRING],
+[m4_pushdef([AS_Prefix], m4_default([$3], [                          ]))
+m4_pushdef([AS_Prefix_Format],
+	   [  %-]m4_eval(m4_len(AS_Prefix) - 3)[s ])
+m4_text_wrap([$2], AS_Prefix, m4_format(AS_Prefix_Format, [$1]))
+m4_popdef([AS_Prefix_Format])
+m4_popdef([AS_Prefix])
 ])
 
 AC_ARG_ENABLE([warnings], AS_HELP_STRING([--disable-warnings], [disable compiler warnings]))
@@ -28,7 +49,7 @@ AC_ARG_WITH([makefile],
 AC_PROG_CC
 AC_PROG_INSTALL
 
-AC_USE_SYSTEM_EXTENSIONS
+#AC_USE_SYSTEM_EXTENSIONS
 MK_CHECK_COMPILE_FLAG([-ansi])
 
 AS_IF([test "x$enable_warnings" != "xno"], [
@@ -81,24 +102,21 @@ AC_COMPILE_IFELSE([
 ])
 AC_MSG_RESULT([$mk_have_designated_initializers])
 
-mk_run_sh() {
-	"$mk_shell" "$@" >/dev/null 2>&1
-}
-
 AC_MSG_CHECKING([if $mk_shell supports -c cmd])
-AS_IF([mk_run_sh -c 'true'], [mk_cv_shell_c=yes], [mk_cv_shell_c=no])
+AS_IF(["$mk_shell" -c 'true' >/dev/null 2>&1], [mk_cv_shell_c=yes], [mk_cv_shell_c=no])
 AC_MSG_RESULT([$mk_cv_shell_c])
 
 AC_MSG_CHECKING([if $mk_shell supports -e])
-mk_run_sh -e -c 'true'
+"$mk_shell" -e -c 'true' >/dev/null 2>&1
 mk_cv_shell_e1=$?
-mk_run_sh -e -c 'x() { return 5; }; x; true'
+"$mk_shell" -e -c 'x() { return 5; }; x; true' >/dev/null 2>&1
 mk_cv_shell_e2=$?
 AS_IF([test "$mk_cv_shell_e1" = 0 && test "$mk_cv_shell_e2" = 5], [mk_cv_shell_e=yes], [mk_cv_shell_e=no])
 AC_MSG_RESULT([$mk_cv_shell_e])
 
 AS_IF([test "x$mk_cv_shell_c" != 'xyes'], [
-	as_fn_error 1 "$mk_shell is not a working shell"
+	echo "$mk_shell is not a working shell" >&2
+	exit 1
 ])
 
 AS_IF([test "x$mk_cv_shell_e" != 'xyes'], [
@@ -112,3 +130,9 @@ AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([config.mk])
 
 AC_OUTPUT
+
+sed	-e '/^-include config.mk/d'	\
+	-e 's/^[a-zA-Z]* ?=.*$/# &/'	\
+	< Mkfile > Makefile.new
+
+cat config.mk Makefile.new > Makefile
