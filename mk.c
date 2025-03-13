@@ -2550,6 +2550,9 @@ FILE *file;
 			if (!run)
 				goto cont;
 
+			if (trim (name) == t)
+				goto invalid;
+
 			switch (*t) {
 			case ':':
 				r = parse_rule (sc, dir, s, t, help);
@@ -2574,6 +2577,7 @@ FILE *file;
 				abort ();
 			}
 		} else {
+		invalid:
 			warnx ("%s:%d: invalid line: %s", path, cline, s);
 		}
 
