@@ -17,8 +17,12 @@
 #include "config.h"
 #include <assert.h>
 #include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
+#if HAVE_STDLIB_H
+# include <stdlib.h>
+#endif
+#if HAVE_UNISTD_H
+# include <unistd.h>
+#endif
 #if HAVE_LIMITS_H
 # include <limits.h>
 #endif

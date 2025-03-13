@@ -27,12 +27,16 @@
 # include <sys/timeb.h>
 #endif
 #include <assert.h>
-#include <unistd.h>
+#if HAVE_UNISTD_H
+# include <unistd.h>
+#endif
 #if HAVE_LIMITS_H
 # include <limits.h>
 #endif
 #include <string.h>
-#include <stdlib.h>
+#if HAVE_STDLIB_H
+# include <stdlib.h>
+#endif
 #include <stdio.h>
 #include <errno.h>
 #include <ctype.h>
