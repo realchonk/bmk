@@ -2374,11 +2374,10 @@ char *s, **name, **value;
 				return NULL;
 			case '{':
 				for (++i; *i != '\0' && *i != '}'; ++i);
-				if (*i == '\0')
+				if (*i != '}')
 					return NULL;
 				break;
 			default:
-				++i;
 				break;
 			}
 			break;
