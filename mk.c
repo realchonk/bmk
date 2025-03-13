@@ -26,6 +26,9 @@
 #if HAVE_FTIME && HAVE_SYS_TIMEB_H
 # include <sys/timeb.h>
 #endif
+#if NEED_SYS_FILE_H
+# include <sys/file.h>
+#endif
 #include <assert.h>
 #if HAVE_UNISTD_H
 # include <unistd.h>
@@ -41,7 +44,9 @@
 #include <errno.h>
 #include <ctype.h>
 #include <fcntl.h>
-#include <time.h>
+#if NEED_TIME_H
+# include <time.h>
+#endif
 #include "compats.h"
 #include "mk.h"
 
