@@ -5,11 +5,8 @@ Generating the configure script requires a few dependencies:
 
 # Bootstrap
 ```sh
-# This is needed, beacuse not every make under the sun supports optional include statements.
-touch config.mk
-
 # Generate the configure script.
-make configure
+./autogen.sh
 
 # Configure bmk and generate a config.mk file.
 ./configure [--prefix=/usr/local]
