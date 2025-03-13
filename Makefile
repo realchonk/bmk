@@ -16,11 +16,11 @@ include config.mk
 # LDFLAGS ?=
 
 ## Installation directory
-prefix ?= /usr/local
+# prefix ?= /usr/local
 
-bindir ?= ${prefix}/bin
+# bindir ?= ${prefix}/bin
 
-mandir ?= ${prefix}/share/man
+# mandir ?= ${prefix}/share/man
 
 ## Build mk
 all: mk
@@ -29,11 +29,11 @@ all: mk
 configure: configure.ac
 	AUTOCONF_VERSION=2.69 AUTOMAKE_VERSION=1.16 autoreconf -i
 	rm -rf autom4te.cache
-	sed 's/\([ !]\)defined \([a-zA-Z0-9_$$]*\)/\1defined(\2)/g' configure > configure.new
+	sed 's/defined (\{0,1\}\([a-zA-Z0-9_$$]\{1,\}\))\{0,1\}/defined(\1)/' configure > configure.new
 	mv configure.new configure
 	chmod +x configure
 	rm -f Makefile
-	sed 's/^-include config.mk/include config.mk/; s/^[A-Z]* ?=.*$$/# &/' Mkfile > Makefile
+	sed 's/^-include config.mk/include config.mk/; s/^[A-Za-z]* ?=.*$$/# &/' Mkfile > Makefile
 
 ## Remove build artifacts
 clean:
