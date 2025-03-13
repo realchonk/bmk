@@ -83,6 +83,7 @@ AC_CHECK_MEMBER([struct timespec.tv_nsec], [
 AC_CHECK_MEMBER([struct stat.st_mtim], [
 	AC_DEFINE([HAVE_STAT_MTIM], [1], [Define to 1 if you have the 'st_mtim' field in 'struct stat'])
 ])
+AC_CHECK_TYPE([size_t], [unsigned int])
 AC_CHECK_TYPE([ssize_t], [int])
 
 AC_MSG_CHECKING([if the C compiler supports C99's designated initializers])
