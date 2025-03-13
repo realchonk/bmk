@@ -133,7 +133,8 @@ AC_CONFIG_FILES([config.mk])
 AC_OUTPUT
 
 sed	-e '/^-include config.mk/d'	\
-	-e 's/^[a-zA-Z]* ?=.*$/# &/'	\
+	-e 's/^[[a-zA-Z]]* ?=.*$/# &/'	\
 	< Mkfile > Makefile.new
 
 cat config.mk Makefile.new > Makefile
+rm -f Makefile.new
