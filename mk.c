@@ -568,17 +568,23 @@ now ()
 
 #if HAVE_CLOCK_GETTIME
 	clock_gettime (CLOCK_REALTIME, &t);
-#elif HAVE_GETTIMEOFDAY
+#endif
+
+#if HAVE_GETTIMEOFDAY && !defined(HAVE_CLOCK_GETTIME)
 	struct timeval tv;
 	gettimeofday (&tv, NULL);
 	t.tv_sec = tv.tv_sec;
 	t.tv_nsec = tv.tv_sec;
-#elif HAVE_FTIME
+#endif
+
+#if HAVE_FTIME && !defined(HAVE_CLOCK_GETTIME) && !defined(HAVE_GETTIMEOFDAY)
 	struct timeb tb;
 	ftime (&tb);
 	t.tv_sec = tb.time;
 	t.tv_nsec = (long)tb.millitm * 1000000;
-#else
+#endif
+
+#if !defined(HAVE_FTIME) && !defined(HAVE_CLOCK_GETTIME) && !defined(HAVE_GETTIMEOFDAY)
 	time_t tx;
 	tx = time (NULL);
 	t.tv_sec = tx;
