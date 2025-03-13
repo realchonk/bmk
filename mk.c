@@ -2371,11 +2371,11 @@ char *s, **name, **value;
 		case '$':
 			switch (*++i) {
 			case '\0':
-				abort ();
+				return NULL;
 			case '{':
 				for (++i; *i != '\0' && *i != '}'; ++i);
 				if (*i == '\0')
-					abort ();
+					return NULL;
 				break;
 			default:
 				++i;
