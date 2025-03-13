@@ -10,21 +10,21 @@ tasks:
   - build-bootstrap: |
       cd bmk
       touch config.mk
-      make configure
+      ./autogen.sh
       ./configure
       make
       doas make install
       make distclean
   - build-tcc: |
       cd bmk
-      mk configure
+      ./autogen.sh
       CC=tcc ./configure
       mk
       doas mk install
       mk distclean
   - build-self: |
       cd bmk
-      mk configure
+      ./autogen.sh
       ./configure
       mk
       doas mk install
