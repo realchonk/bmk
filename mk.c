@@ -55,6 +55,8 @@
 # define SHELL "sh"
 #endif
 
+extern int errno;
+
 static char *cpath, *objdir = NULL;
 static int verbose = 0, cline = 0, conterr = 0;
 static struct timespec time_zero;
