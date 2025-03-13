@@ -64,7 +64,9 @@ Allow specifying additional `PATH` directories.
 
 # Portability
 - don't rely on implicit int
-- allow const
+- allow `const`
+- check for `void *`, and redefine to `char *`, if not available
+- don't use `void`
 
 # CI
 build projects that use bmk:
