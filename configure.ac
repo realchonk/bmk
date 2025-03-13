@@ -72,7 +72,7 @@ AC_COMPILE_IFELSE([
 	mk_cv_c_void_ptr=yes
 	AC_DEFINE([HAVE_VOID_PTR], [1],
 		  [Define to 1 if your compiler has void *])
-])
+], [mk_cv_c_void_ptr=no])
 AC_MSG_RESULT([$mk_cv_c_void_ptr])
 
 AC_MSG_CHECKING([if the C compiler supports C99's designated initializers])
