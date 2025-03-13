@@ -15,6 +15,7 @@
  */
 
 #include "config.h"
+#include <sys/types.h>
 #include <assert.h>
 #include <string.h>
 #if HAVE_STDLIB_H
@@ -42,6 +43,8 @@
 #else
 #define VOID char
 #endif
+
+extern int errno;
 
 #ifndef HAVE_REALLOCARRAY
 VOID *
