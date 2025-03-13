@@ -1,6 +1,8 @@
 AC_PREREQ([2.52])
 AC_INIT([mk], [0.0], [benni@stuerz.xyz])
 
+mk_saved_CFLAGS="$CFLAGS"
+
 # The configure test fails for Xenix, because their `grep` is slightly broken.
 # This tells configure, to skip the `grep` tests.
 AS_IF([test "x$(uname)" = 'xXENIX'], [
@@ -28,6 +30,7 @@ AC_PROG_CC
 AC_PROG_INSTALL
 
 MK_USE_SYSTEM_EXTENSIONS
+CFLAGS="$mk_saved_CFLAGS"
 MK_CHECK_COMPILE_FLAG([-ansi])
 
 AS_IF([test "x$enable_warnings" != "xno"], [

@@ -4,7 +4,7 @@ AC_DEFUN([MK_CHECK_COMPILE_FLAG], [
 	AC_CACHE_CHECK([whether the C compiler accepts $1], CACHEVAR, [
 		mk_check_save_flags="$CFLAGS"
 		CFLAGS="$CFLAGS $1 -Werror"
-		AC_COMPILE_IFELSE([AC_LANG_PROGRAM()],
+		AC_LINK_IFELSE([AC_LANG_PROGRAM()],
 			[AS_VAR_SET(CACHEVAR, [yes])],
 			[AS_VAR_SET(CACHEVAR, [no])])
 		CFLAGS="$mk_check_save_flags"
