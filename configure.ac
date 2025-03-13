@@ -10,6 +10,7 @@ AS_IF([test "x$(uname)" = 'xXENIX'], [
 AC_CONFIG_SRCDIR([mk.c])
 AC_CONFIG_AUX_DIR([build-aux])
 m4_include([m4/ax_compiler_vendor.m4])
+m4_include([m4/mk_use_system_extensions.m4])
 
 # MK_CHECK_COMPILE_FLAG(FLAG)
 AC_DEFUN([MK_CHECK_COMPILE_FLAG], [
@@ -49,7 +50,7 @@ AC_ARG_WITH([makefile],
 AC_PROG_CC
 AC_PROG_INSTALL
 
-#AC_USE_SYSTEM_EXTENSIONS
+MK_USE_SYSTEM_EXTENSIONS
 MK_CHECK_COMPILE_FLAG([-ansi])
 
 AS_IF([test "x$enable_warnings" != "xno"], [
