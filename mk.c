@@ -1294,6 +1294,7 @@ ret:
 	return 0;
 invalid:
 	errx (1, "%s: invalid macro expansion: '${%s', s = '%s'", sc_path_str (sc), orig, *s);
+	return 0;
 }
 
 subst (out, sc, prefix, s, ctx)
