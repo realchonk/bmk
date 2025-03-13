@@ -6,13 +6,13 @@ task:
     - brew install autoconf automake autoconf-archive
   bootstrap_script:
     - touch config.mk
-    - make configure
+    - ./autogen.sh
     - ./configure
     - make
     - sudo make install
     - make distclean
   selftest_script:
-    - mk configure
+    - ./autogen.sh
     - ./configure
     - mk
     - sudo mk install
