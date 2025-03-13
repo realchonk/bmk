@@ -8,14 +8,14 @@ tasks:
   - build-bootstrap: |
       cd bmk
       touch config.mk
-      make configure
+      ./autogen.sh
       ./configure
       make
       sudo make install
       make distclean
   - build-self: |
       cd bmk
-      mk configure
+      ./autogen.sh
       ./configure
       mk
       sudo mk install
