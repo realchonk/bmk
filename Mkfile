@@ -27,7 +27,8 @@ all: mk
 
 ## Generate a configure script and Makefile
 configure: configure.ac
-	AUTOCONF_VERSION=2.69 AUTOMAKE_VERSION=1.16 autoreconf -i
+	AUTOCONF_VERSION=2.52 autoconf
+	AUTOCONF_VERSION=2.52 autoheader
 	rm -rf autom4te.cache
 	sed 's/defined (\{0,1\}\([a-zA-Z0-9_$$]\{1,\}\))\{0,1\}/defined(\1)/' configure > configure.new
 	mv configure.new configure
