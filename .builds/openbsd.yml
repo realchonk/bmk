@@ -6,8 +6,7 @@ packages:
   - tcc
 tasks:
   - install-deps: |
-      pkg_info -Q autoconf | grep '^autoconf-2.69' | xargs doas pkg_add
-      pkg_info -Q automake | grep '^automake-1.16' | xargs doas pkg_add
+      pkg_info -Q autoconf | grep '^autoconf-2.52' | xargs doas pkg_add
   - build-bootstrap: |
       cd bmk
       touch config.mk
