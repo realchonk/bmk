@@ -64,6 +64,17 @@ AC_CHECK_MEMBER([struct stat.st_mtim], [
 AC_CHECK_TYPE([size_t], [unsigned int])
 AC_CHECK_TYPE([ssize_t], [int])
 
+dnl 2.11BSD cc doesn't understand `void *`
+AC_MSG_CHECKING([if the C compiler understands void *])
+AC_COMPILE_IFELSE([
+	AC_LANG_PROGRAM(([void *getptr () { return 0; }])
+], [
+	mk_cv_c_void_ptr=yes
+	AC_DEFINE([HAVE_VOID_PTR], [1],
+		  [Define to 1 if your compiler has void *])
+])
+AC_MSG_RESULT([$mk_cv_c_void_ptr])
+
 AC_MSG_CHECKING([if the C compiler supports C99's designated initializers])
 mk_have_designated_initializers=no
 AC_COMPILE_IFELSE([
