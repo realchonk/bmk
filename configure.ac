@@ -75,8 +75,43 @@ AC_COMPILE_IFELSE([
 ], [mk_cv_c_void_ptr=no])
 AC_MSG_RESULT([$mk_cv_c_void_ptr])
 
+dnl 2.11BSD defines the *_OK macros for access() in <sys/file.h>
+AC_MSG_CHECKING([if <sys/file.h> defines F_OK])
+AC_COMPILE_IFELSE([
+	AC_LANG_PROGRAM([
+		#ifdef F_OK
+		# undef F_OK
+		#endif
+		#include <sys/file.h>
+		int i = F_OK;
+	])
+], [
+	mk_cv_f_ok_sys_file_h=yes
+	AC_DEFINE([NEED_SYS_FILE_H], [1],
+		  [Define to 1 if F_OK is defined in <sys/file.h>])
+], [mk_cv_f_ok_sys_file_h=no])
+AC_MSG_RESULT([$mk_cv_f_ok_sys_file_h])
+
+dnl BSDs include <time.h> in <sys/time.h>
+dnl When including both headers in 2.11BSD, struct tm is defined twice
+AC_MSG_CHECKING([if <time.h> is needed])
+AC_COMPILE_IFELSE([
+	AC_LANG_PROGRAM([
+		#define tm test_tm
+		#include <sys/time.h>
+		#undef tm
+
+		struct test_tm x;
+	])
+], [mk_cv_need_time_h=no], [
+	mk_cv_need_time_h=yes
+	AC_DEFINE([NEED_TIME_H], [1],
+		  [Define to 1 if including both <sys/time.h> and <time.h> breaks the build])
+])
+AC_MSG_RESULT([$mk_cv_need_time_h])
+
+dnl Some compilers are just too old
 AC_MSG_CHECKING([if the C compiler supports C99's designated initializers])
-mk_have_designated_initializers=no
 AC_COMPILE_IFELSE([
 	AC_LANG_PROGRAM([[
 		struct test {
@@ -89,7 +124,7 @@ AC_COMPILE_IFELSE([
 	mk_have_designated_initializers=yes
 	AC_DEFINE([HAVE_DESIGNATED_INITIALIZERS], [1],
 		  [Define to 1 if your compiler supports C99s designated initializers])
-])
+], [mk_have_designated_initializers=no])
 AC_MSG_RESULT([$mk_have_designated_initializers])
 
 AC_MSG_CHECKING([if $mk_shell supports -c cmd])
