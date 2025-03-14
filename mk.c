@@ -3255,9 +3255,12 @@ struct scope *sc;
 			continue;
 
 		n = 0;
-		if (p != NULL)
-			n += printf ("%s/", p);
-		n += printf ("%s", f->name);
+		if (p != NULL) {
+			printf ("%s/", p);
+			n += strlen (p) + 1;
+		}
+		printf ("%s", f->name);
+		n += strlen (f->name);
 		printf ("%-*s- %s\n", n < 30 ? 30 - n : 0, "", f->help);
 	}
 
