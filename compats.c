@@ -211,7 +211,7 @@ char *path, *resolved;
 }
 #endif
 
-#ifndef HAVE_STRSEP
+#ifndef WORKS_STRSEP
 /*-
  * Copyright (c) 1990, 1993
  *	The Regents of the University of California.  All rights reserved.
@@ -240,6 +240,10 @@ char *path, *resolved;
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
+
+#if HAVE_STRSEP
+# define strsep xstrsep
+#endif
 
 /*
  * Get next token from string *stringp, where tokens are possibly-empty
