@@ -32,7 +32,10 @@ extern char *dirname ();
 extern char *strdup ();
 #endif
 
-#ifndef HAVE_STRSEP
+#ifndef WORKS_STRSEP
+# if HAVE_STRSEP
+#  define strsep xstrsep
+# endif
 extern char *strsep ();
 #endif
 

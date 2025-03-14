@@ -130,6 +130,36 @@ AC_COMPILE_IFELSE([
 ], [mk_have_designated_initializers=no])
 AC_MSG_RESULT([$mk_have_designated_initializers])
 
+dnl 2.11BSD has a different strsep(), which is more like strtok()
+AS_IF([test "x$ac_cv_func_strsep" = 'xyes'], [
+	AC_MSG_CHECKING([if strsep() works])
+	AC_RUN_IFELSE([
+		AC_LANG_PROGRAM([#include <stdio.h>], [[
+			extern char *strsep ();
+			extern int strcmp ();
+			char *s, *t, x[] = "/usr/local/bin";
+			char *words[] = {
+				"",
+				"usr",
+				"local",
+				"bin",
+			};
+			int i;
+
+			for (i = 0, s = x; i < 4 && (t = strsep (&s, "/")) != NULL; ++i) {
+				if (strcmp (t, words[i]) != 0)
+					return 1;
+			}
+			return 0;
+		]])
+	], [
+		mk_cv_func_strsep=yes
+		AC_DEFINE([WORKS_STRSEP], [1],
+			  [Define to 1 if your strsep() actually works])
+	], [mk_cv_func_strsep=no])
+	AC_MSG_RESULT([$mk_cv_func_strsep])
+])
+
 AC_MSG_CHECKING([if $mk_shell supports -c cmd])
 AS_IF(["$mk_shell" -c 'true' >/dev/null 2>&1], [mk_cv_shell_c=yes], [mk_cv_shell_c=no])
 AC_MSG_RESULT([$mk_cv_shell_c])
