@@ -30,6 +30,7 @@ This might be necessary on platforms that are too broken to run a configure scri
 - [arm64-macos](https://cirrus-ci.com/github/realchonk/bmk/main)
 
 ## Other Platforms, which have been tested at some point
+- [pdp11-bsd211](https://github.com/realchonk/bmk/pull/3)
 - powerpc64-freebsd
 - hppa-netbsd
 - hppa-openbsd
