@@ -1,7 +1,6 @@
 # Dependencies
 Generating the configure script requires a few dependencies:
-- autoconf (>= 2.64, for extra portability version 2.64 should be used, as later versions make more assumptions about the host)
-- automake (any somewhat recent version should work, as automake itself isn't being used directly)
+- autoconf (>= 2.52, for extra portability version 2.52 should be used, as later versions make more assumptions about the host)
 
 # Bootstrap
 ```sh
@@ -36,3 +35,6 @@ This might be necessary on platforms that are too broken to run a configure scri
 - hppa-openbsd
 - Minix-vmd (i486) (configure broken)
 - XENIX 2.3.4
+
+## TODO
+- create CI for 2.11BSD
