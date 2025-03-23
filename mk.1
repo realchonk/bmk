@@ -180,17 +180,143 @@ Variables can be made visible into subdirectories using the
 .Dq .EXPORT:
 directive.
 .Ss SPECIAL VARIABLES
-TODO
+The following special variables can be used:
+.Bl -tag -width Ds
+.It Ic $$
+The literal
+.Ic $
+character.
+.It Ic $.
+Relative path to the top-level directory.
+This is the shortform of ${\fB.TOPDIR\fR}.
+.It Ic $@
+The name of the target currently being built.
+This is the shortform of ${\fB.TARGET\fR}.
+.It Ic $<
+The name of the prerequisite from which this target is to be built,
+if a valid inference rule (suffix rule) is in scope.
+This is the shortform of ${\fB.IMPSRC\fR}.
+.It Ic $^
+All source dependencies.
+This is the shortform of ${\fB.ALLSRC\fR}.
+.It Ic $*
+This is the shortform of ${\fB.IMPSRC:T\fR}.
+.It ${\fB.SUBDIRS\fR}
+A list of subdirectories specified by the
+.Ic .SUBDIRS:
+directive.
+.It ${\fB.EXPORTS\fR}
+A list of variable names specified by the
+.Ic .EXPORTS:
+directive.
+.It ${\fB.OBJDIR\fR}
+The object directory specified by the
+.Fl o Ar objdir
+option, or the current directory.
+.It ${\fB.MAKEFILES\fR}
+A list of Mkfiles from this directory upwards.
+.It ${\fBSHELL\fR}
+The shell used to interpret the command lines.
+.It ${\fBMAKE\fR}
+The name of the
+.Nm
+command.
+Alias for ${\fB.MAKE\fR}.
+.It ${\fBMAKEFLAGS\fR}
+A list of options given to
+.Nm .
+Alias for ${\fB.MAKEFLAGS\fR}.
+.El
 .Ss MODIFIERS
-The following modifiers can be applied to variable expansions:
-TODO
+Modifiers can be applied to a macro expansion using the following syntax:
+.Bd -ragged -offset ident
+${\fBNAME\fR:\fImodfiers\fR...}
+.Ed
 .Pp
-TODO: Examples
+The following modifiers can be applied to variable expansions:
+.Bl -tag -width Ds
+.It Ic :U
+Make all characters in
+.Ar string
+uppercase.
+.It Ic :L
+Make all characters in
+.Ar string
+lowercase.
+.It Ic :F
+Search for files in either the source directory, or in
+.Ic ${.OBJDIR} .
+.It Ic :E
+Replace each word by it's suffix.
+.Dq suffix
+refers to the file extension.
+.It Ic :R
+Replace each word by everything but it's suffix.
+.It Ic :H
+Replace each word by it's
+.Xr dirname 1
+equivalent.
+.It Ic :T
+Replace each word by it's
+.Xr basename 1
+equivalent.
+.It Ic :M\fIpattern\fR
+Only retain words that match
+.Ar pattern .
+.It Ic :N\fIpattern\fR
+The opposite of the
+.Ic :M
+modifier.
+.It Ic :J\fIseparator
+Concatenate each word and separate the resulting string by
+.Ar separator .
+.It :\fBname\fR=\fBvalue\fR
+Replace every occurence of
+.Ar name
+with
+.Ar value .
+This has to be the last modifier.
+.El
+.Pp
+These are a few examples for the preceding modifiers:
+.Pp
+.Bd -literal -offset indent
+SOURCE = main.c lex.l parse.y gen.S
+
+# Only retain words that match the glob \fB*.c\fR
+CFILES = ${SOURCE:M*.c}
+
+# Replace all the file extension \fB.c\fR with \fB.o\fR
+COBJS = ${CFILES:.c=.o}
+
+clean:
+	# Use \fB:F\fR to search for the object files in \fB${.OBJDIR}\fR
+	rm -f ${COBJS:F}
+
+print:
+	# Multiple modifiers can be specified:
+	@echo ${SOURCE:T:U}
+.Ed
 .Sh INCLUDE STATEMENTS
-TODO
+Using the
+.Ic include
+statement it is possible to instruct
+.Nm
+to read another file.
+
+Examples:
+.Bd -literal -offset indent
+# Include a file called "templates.mk"
+include templates.mk
+
+# Try including a file called "config.mk", if it exists
+-include config.mk
+.Ed
 .Sh SUBDIRECTORIES
 TODO
 .Sh CONDITIONALS
+TODO
+.Sh OTHER DIRECTIVES
 TODO
 .Sh COMMENTS
 Comments begin with a single hash
@@ -203,6 +329,7 @@ character within a shell command line will be interpreted as a comment by the sh
 .Ss DOCUMENTATION COMMENTS
 Documentation comments are a special variant of comments,
 which can only appear before rules and macros.
+.Pp
 TODO: see -h option
 .Sh SPECIAL TARGETS
 TODO
