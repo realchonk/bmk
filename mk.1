@@ -122,8 +122,6 @@ is specified, or the shell is broken (in case of Minix-vmd).
 .Sh INFERENCE RULES
 TODO
 .Sh VARIABLE ASSIGNMENTS
-TODO
-.Pp
 Variables in
 .Nm
 are much like variables in the shell:
@@ -278,7 +276,7 @@ with
 This has to be the last modifier.
 .El
 .Pp
-These are a few examples for the preceding modifiers:
+These are a few examples for using macro modifiers:
 .Pp
 .Bd -literal -offset indent
 SOURCE = main.c lex.l parse.y gen.S
@@ -307,12 +305,42 @@ to read another file.
 Examples:
 .Bd -literal -offset indent
 # Include a file called "templates.mk"
-include templates.mk
+\fBinclude\fR templates.mk
 
 # Try including a file called "config.mk", if it exists
--include config.mk
+\fB-include\fR config.mk
 .Ed
 .Sh SUBDIRECTORIES
+Subdirectories can be declared using the
+.Ic .SUFFIXES:
+directive.
+.Pp
+The handling of subdirectories is done lazily,
+such that the
+.Ic Mkfile
+of the subdirectory is only parsed,
+once a target in that subdirectory tree is needed.
+.Pp
+Examples:
+.Bd -literal -offset indent
+# Declare subdirectories \fIfoo\fR and \fIbar\fR
+\fB.SUBDIRS:\fR foo bar
+
+# Depend on targets from other directories
+foobar: foo/libfoo.a bar/libbar.so ../config.h
+	# \fN$^\fR refers to the list of prerequisites
+	build -o foobar \fB$^\fR
+
+# Print a ", " separated list of subdirectories
+list:
+	@echo "${\fB.SUBDIRS\fR:J, }"
+
+# Depend on the \fIclean\fR target of every subdirectories:
+clean: ${\fB.SUBDIRS\fR:=/clean}
+	# Prefix with ${\fB.OBJDIR\fR}/ for compatibility with the \fB-o\fR option.
+	rm -f ${\fB.OBJDIR\fR}/foobar
+.Ed
+.Ss CUSTOM SUBDIRECTORIES
 TODO
 .Sh CONDITIONALS
 TODO
@@ -328,9 +356,22 @@ A
 character within a shell command line will be interpreted as a comment by the shell.
 .Ss DOCUMENTATION COMMENTS
 Documentation comments are a special variant of comments,
-which can only appear before rules and macros.
+which can only appear before rule and macro definitions.
+To define a doc-comment, two hash
+.Pq Ql \&#
+characters must be used.
 .Pp
-TODO: see -h option
+Example:
+.Bd -literal -offset indent
+# This is a doc-comment for macro NAME
+## Define the name of the project
+NAME = hello
+
+# Macros in doc-comments will be expanded:
+## Build ${NAME}
+${NAME}: ${NAME}.c
+	${CC} -o $@ $<
+.Ed
 .Sh SPECIAL TARGETS
 TODO
 .Sh ENVIRONMENT
@@ -341,11 +382,19 @@ TODO
 default makefile
 .El
 .Sh EXAMPLES
-TODO
+The following is a list of real-world projects built with
+.Nm :
+.Bl -bullet -compact
+.It
+.Lk https://got.stuerz.xyz/?action=summary&path=desktop.git desktop
+.It
+.Lk https://got.stuerz.xyz/?action=summary&path=286bsd.git 286bsd
+.El
 .Sh EXIT STATUS
 .Ex -std
 .Sh SEE ALSO
-.Xr make 1
+.Xr make 1 ,
+.Xr sh 1
 .Sh STANDARDS
 This implementation of make(1) does not strictly follow any POSIX standard,
 but still most simple Makefiles will work fine.
