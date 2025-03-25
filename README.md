@@ -30,6 +30,7 @@ This might be necessary on platforms that are too broken to run a configure scri
 
 ## Other Platforms, which have been tested at some point
 - [pdp11-bsd211](https://github.com/realchonk/bmk/pull/3)
+- [vax11-bsd43](https://github.com/realchonk/bmk/pull/5)
 - powerpc64-freebsd
 - hppa-netbsd
 - hppa-openbsd
