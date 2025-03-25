@@ -29,6 +29,7 @@
 #endif
 #include <stdio.h>
 #include <errno.h>
+#include <ctype.h>
 
 #ifndef PATH_MAX
 # ifdef _POSIX_PATH_MAX
@@ -349,3 +350,56 @@ size_t len;
 }
 #endif
 
+#ifndef HAVE_STRTOL
+long
+strtol (s, endptr, base)
+char *s, **endptr;
+{
+	long x = 0;
+	int d, sign = 1;
+
+	if (*s == '-') {
+		sign = -1;
+		++s;
+	}
+
+	if (base == 0) {
+		if (strncmp (s, "0x", 2) == 0 || strncmp (s, "0X", 2) == 0) {
+			base = 16;
+			s += 2;
+		} else if (strncmp (s, "0", 1) == 0) {
+			base = 8;
+			s += 1;
+		} else {
+			base = 10;
+		}
+	}
+	
+	if (base < 2 || base > 36)
+		goto end;
+
+	while (*s != '\0') {
+		if (isdigit (*s)) {
+			d = *s++ - '0';
+		} else if (isupper (*s)) {
+			d = *s++ - 'A' + 10;
+		} else if (islower (*s)) {
+			d = *s++ - 'a' + 10;
+		} else {
+			break;
+		}
+		printf ("d = %d\n", d);
+
+		if (d >= base)
+			break;
+
+
+		x = x * base + d;
+	}
+
+end:
+	if (endptr)
+		*endptr = s;
+	return sign * x;
+}
+#endif
