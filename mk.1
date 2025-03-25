@@ -340,8 +340,77 @@ clean: ${\fB.SUBDIRS\fR:=/clean}
 	# Prefix with ${\fB.OBJDIR\fR}/ for compatibility with the \fB-o\fR option.
 	rm -f ${\fB.OBJDIR\fR}/foobar
 .Ed
-.Ss CUSTOM SUBDIRECTORIES
+.Ss FOREIGN SUBDIRECTORIES
 TODO
+.Pp
+Foreign subdirectories allow integration with other build systems.
+.Pp
+This is an example of integrating an example Autotools dependency:
+.Bd -literal -offset indent
+# Declare hello as a "foreign directory"
+\fB.FOREIGN\fR: hello
+
+\fBHELLODIR\fR = hello-2.0
+
+## External make used for building libhello
+\fBEMAKE\fR ?= make
+
+## C Compiler
+\fBCC\fR ?= cc
+
+## C Compiler Flags
+\fBCFLAGS\fR ?=
+
+## Installation Prefix
+\fBPREFIX\fR ?= /usr/local
+
+## Installation destination directory
+\fBDESTDIR\fR ?=
+
+\fB.EXPORTS\fR: CC CFLAGS DESTDIR
+
+## Build hello/hello and xhello
+all: hello/hello xhello
+
+## Delete build artifacts
+clean: hello/clean
+	rm -f xhello
+
+## Delete all non-source files
+distclean: clean
+	rm -rf ${HELLODIR:F}
+	rm -f ${.OBJDIR}/{hello.tgz,.hello-configure,.hello-extract}
+
+## Install hello and xhello into ${DESTDIR}${PREFIX}
+install: hello/install xhello
+	mkdir -p ${DESTDIR}${PREFIX}/bin
+	cp -f ${.OBJDIR}/xhello ${DESTDIR}${PREFIX}/bin/
+
+## Download hello source
+hello.tgz:
+	ftp -o $@ https://got.stuerz.xyz/download/hello-2.0.tgz
+
+\fR.hello-extract: hello.tgz
+	tar -xzf $< -C ${.OBJDIR}
+	touch $@
+
+\fR.hello-configure: .hello-extract
+	(cd ${HELLODIR:F} && ./configure --prefix=${PREFIX})
+	touch $@
+
+# Check if $< is fresh in hello
+hello?:
+	test -e ${HELLODIR:F}/Makefile
+	${EMAKE} -q -C ${HELLODIR:F} ${.EXPORTS} "$$(echo "$<" | sed 's#./##')"
+
+# Build $< in hello
+hello!: .hello-configure
+	${EMAKE} -C ${HELLODIR:F} ${.EXPORTS} "$$(echo "$<" | sed 's#./##')"
+
+## Build the xhello binary
+xhello: xhello.c hello/libhello.a
+	${CC} -o $@ xhello.c -I${HELLODIR:F} -L${HELLODIR:F} -lhello ${CFLAGS}
+.Ed
 .Sh CONDITIONALS
 TODO
 .Sh OTHER DIRECTIVES
@@ -449,4 +518,12 @@ Create a comparison to other makes.
 See TODO.md file.
 .It
 Optional prerequisites (continue even if the prerequisite failed).
+.It
+Numbered prerequisite macros.
+.It
+Strip
+.Dq ./
+prefix for
+.Ic $<
+and other variables.
 .El
