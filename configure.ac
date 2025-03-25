@@ -56,7 +56,7 @@ AS_IF([test "x$enable_warnings" != "xno"], [
 ])
 
 AC_FUNC_FORK
-AC_CHECK_FUNCS([getcwd reallocarray fnmatch basename dirname strdup realpath strsep clock_gettime gettimeofday ftime fmemopen lstat memmove])
+AC_CHECK_FUNCS([getcwd reallocarray fnmatch basename dirname strdup realpath strsep clock_gettime gettimeofday ftime fmemopen lstat memmove strerror])
 AC_CHECK_HEADERS([err.h fnmatch.h libgen.h limits.h sys/time.h sys/timeb.h sys/wait.h])
 AC_CHECK_MEMBER([struct timespec.tv_nsec], [
 	AC_DEFINE([HAVE_TIMESPEC], [1], [Define to 1 if you have the 'timespec' struct])
@@ -171,6 +171,20 @@ AS_IF([test "x$ac_cv_func_strsep" = 'xyes'], [
 	], [mk_cv_func_strsep=no])
 	AC_MSG_RESULT([$mk_cv_func_strsep])
 ])
+
+dnl 4.3BSD doesn't have strerror(), but has sys_errlist[]
+AC_MSG_CHECKING([if sys_errlist[[]] exists])
+AC_LINK_IFELSE([
+	AC_LANG_PROGRAM([#include <stdio.h>], [
+		extern char *sys_errlist[[]];
+		puts (sys_errlist[[1]]);
+	])
+], [
+	mk_cv_sys_errlist=yes
+	AC_DEFINE([HAVE_SYS_ERRLIST], [1],
+		  [Define to 1 if your system has sys_errlist[[]]])
+], [mk_cv_sys_errlist=no])
+AC_MSG_RESULT([$mk_cv_sys_errlist])
 
 AC_MSG_CHECKING([if $mk_shell supports -c cmd])
 AS_IF(["$mk_shell" -c 'true' >/dev/null 2>&1], [mk_cv_shell_c=yes], [mk_cv_shell_c=no])
