@@ -1,0 +1,69 @@
+#!/bin/sh
+# run expect \
+exec expect -f "$0" "$@"
+
+# lmap is missing in Tcl 8.5 (which is used by expect on OpenBSD)
+proc lmap {_var list body} {
+    upvar 1 $_var var
+    set res {}
+    foreach var $list {lappend res [uplevel 1 $body]}
+    set res
+}
+
+if { $argc != 1 } {
+	error "usage: "
+}
+
+set ip "192.168.64.9"
+
+set machine [lindex $argv 0]
+switch -- $machine {
+	211 {
+		set name "2.11BSD"
+		set port 2301
+	}
+	43 {
+		set name "4.3BSD"
+		set port 2302
+	}
+	default {
+		error "invalid name: $machine"
+	}
+}
+
+# Prepare mk
+puts "Cleaning..."
+exec mk distclean
+
+puts "Generating configure script..."
+exec -ignorestderr ./autogen.sh
+
+set files {mk.[1ch] compats.[ch] configure config.h.in config.mk.in Mkfile build-aux/install-sh}
+set globbed [lmap f $files {glob "$f"}]
+set prefixed [lmap f [join $globbed] {expr {"mk/$f"}}]
+
+puts "Generating tarball..."
+set data [exec sh -c "cd ..; tar -cf - -F tar $prefixed | compress -b12 | uuencode mk.tar.Z"]
+
+puts "Connecting to $name..."
+spawn telnet $ip $port
+
+set prompt "\n\$ "
+set timeout 120
+expect "login: "	{ send "benni\r" }
+expect $prompt		{ send "TERM=vt100; export TERM\r" }
+expect $prompt		{ send "rm -rf mk mk.tar.Z\r" }
+expect $prompt		{
+	send "uudecode\r"
+	send "$data"
+	send "\r"
+}
+expect $prompt		{ send "uncompress < mk.tar.Z | tar -xf -\r" }
+expect $prompt		{ send "cd mk\r" }
+expect $prompt		{ send "./configure --prefix=/usr/local\r" }
+expect $prompt		{ send "make\r" }
+expect $prompt		{ send "cp mk xmk\r" }
+expect $prompt		{ send "./xmk clean all\r" }
+expect $prompt		{ send "./xmk -hv\r" }
+expect $prompt		{ send "echo DONE\r" }
+expect $prompt		{ send "\004" }
