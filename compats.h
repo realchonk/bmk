@@ -89,3 +89,16 @@ extern void *memmove ();
 #ifndef HAVE_LSTAT
 # define lstat(fd, st) (stat ((fd), (st)))
 #endif
+
+#if __STDC__ || HAVE_VOID_PTR
+#define VOID void
+#else
+#define VOID char
+#endif
+
+#ifndef HAVE_STDLIB_H
+extern VOID *malloc ();
+extern VOID *calloc ();
+extern VOID *realloc ();
+extern char *getenv ();
+#endif
