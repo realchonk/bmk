@@ -56,7 +56,7 @@ AS_IF([test "x$enable_warnings" != "xno"], [
 ])
 
 AC_FUNC_FORK
-AC_CHECK_FUNCS([getcwd reallocarray fnmatch basename dirname strdup realpath strsep clock_gettime gettimeofday ftime fmemopen lstat memmove strerror])
+AC_CHECK_FUNCS([getcwd reallocarray fnmatch basename dirname strdup realpath strsep clock_gettime gettimeofday ftime fmemopen lstat memmove strerror strtol])
 AC_CHECK_HEADERS([err.h fnmatch.h libgen.h limits.h sys/time.h sys/timeb.h sys/wait.h])
 AC_CHECK_MEMBER([struct timespec.tv_nsec], [
 	AC_DEFINE([HAVE_TIMESPEC], [1], [Define to 1 if you have the 'timespec' struct])
