@@ -45,6 +45,13 @@
 #define VOID char
 #endif
 
+#ifndef HAVE_STDLIB_H
+extern VOID *malloc ();
+extern VOID *calloc ();
+extern VOID *realloc ();
+extern char *mktemp ();
+#endif
+
 extern int errno;
 
 #ifndef HAVE_STRERROR
