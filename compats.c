@@ -198,7 +198,7 @@ char *s;
 
 	len = strlen (s) + 1;
 	out = malloc (len);
-	memcmp (out, s, len);
+	memcpy (out, s, len);
 
 	return out;
 }
