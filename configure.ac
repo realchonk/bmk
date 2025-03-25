@@ -70,7 +70,19 @@ AC_CHECK_TYPE([ssize_t], [int])
 dnl 2.11BSD cc doesn't understand `void *`
 AC_MSG_CHECKING([if the C compiler understands void *])
 AC_COMPILE_IFELSE([
-	AC_LANG_PROGRAM([void *getptr () { return 0; }])
+	AC_LANG_PROGRAM([
+		#include <stdio.h>
+		void *
+		getptr (ptr)
+		void *ptr;
+		{
+			return ptr;
+		}
+	], [
+		int x = 42;
+		void *p = &x;
+		p = getptr (p);
+	])
 ], [
 	mk_cv_c_void_ptr=yes
 	AC_DEFINE([HAVE_VOID_PTR], [1],
