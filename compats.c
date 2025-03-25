@@ -46,6 +46,19 @@
 
 extern int errno;
 
+#ifndef HAVE_STRERROR
+char *
+strerror (err)
+{
+# if HAVE_SYS_ERRLIST
+	extern char *sys_errlist[];
+	return sys_errlist[err];
+# else
+	return "unknown error";
+# endif
+}
+#endif
+
 #ifndef HAVE_REALLOCARRAY
 VOID *
 reallocarray (ptr, num, size)
@@ -335,3 +348,4 @@ size_t len;
 	return dest;
 }
 #endif
+
