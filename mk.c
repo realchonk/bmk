@@ -382,21 +382,26 @@ struct path *p;
 {
 	size_t i;
 
-	str_putc (s, '.');
+	if (p[0].type == PATH_NULL) {
+		str_putc (s, '.');
+		return 0;
+	}
 
 	for (i = 0; p[i].type != PATH_NULL; ++i) {
 		switch (p[i].type) {
 		case PATH_NULL:
 			abort ();
 		case PATH_SUPER:
-			str_puts (s, "/..");
+			str_puts (s, "../");
 			break;
 		case PATH_NAME:
-			str_putc (s, '/');
 			str_puts (s, p[i].name);
+			str_putc (s, '/');
 			break;
 		}
 	}
+
+	str_pop (s);
 
 	return 0;
 }
