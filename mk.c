@@ -2454,6 +2454,7 @@ FILE *file;
 			}
 			oldcline = cline;
 			parse (sc, dir, u);
+			sc_dir (sc)->done = 0;
 			cline = oldcline;
 			if (u != t)
 				free (u);
@@ -2472,6 +2473,8 @@ FILE *file;
 
 			if (access (t, R_OK) == 0)
 				parse (sc, dir, u);
+
+			sc_dir (sc)->done = 0;
 
 			if (u != t)
 				free (u);
