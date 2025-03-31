@@ -6,3 +6,4 @@ mk
 configure
 autom4te.cache
 compile_flags.txt
+bmk.pdf
