@@ -351,7 +351,7 @@ This is an example of integrating an example Autotools dependency:
 # Declare hello as a "foreign directory"
 \fB.FOREIGN\fR: hello
 
-\fBHELLODIR\fR = hello-2.0
+\fBHELLODIR\fR = hello
 
 ## External make used for building libhello
 \fBEMAKE\fR ?= make
@@ -399,7 +399,7 @@ hello.tgz:
 	(cd ${HELLODIR:F} && ./configure --prefix=${PREFIX})
 	touch $@
 
-# Check if $< is fresh in hello
+# Check if \fB$<\fR is fresh in hello
 hello?:
 	test -e ${HELLODIR:F}/Makefile
 	${EMAKE} -q -C ${HELLODIR:F} ${.EXPORTS} "$$(echo "$<" | sed 's#./##')"
