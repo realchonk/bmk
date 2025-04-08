@@ -37,5 +37,9 @@ This might be necessary on platforms that are too broken to run a configure scri
 - Minix-vmd (i486) (configure broken)
 - XENIX 2.3.4
 
+## Projects using bmk(1)
+- https://got.stuerz.xyz/?action=summary&path=286bsd.git
+- https://got.stuerz.xyz/?action=summary&path=desktop.git
+
 ## TODO
 - create CI for 2.11BSD
