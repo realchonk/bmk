@@ -1,144 +1,280 @@
 #import "@preview/slydst:0.1.4": *
+#import "@preview/treet:0.1.1": *
+#import "@preview/cades:0.3.0": qr-code
 
 #show: slides.with(
-    title: "bmk: TODO",
-    subtitle: "A make(1) that solves subdirectories or something I dunno",
+    title: "bmk",
+    subtitle: "A redesigned make(1) with a few nice features",
     authors: "Benjamin Stürz <benni@stuerz.xyz>",
 )
 
 #show raw: set block(fill: silver.lighten(65%), width: 100%, inset: 1em)
 
-== Outline
-
-#outline()
-
 = Motivation
 
-== Traditional make(1): no concept of subdirectories
-TODO
+== Why yet another make?
+- GNU Make
+- multiple variants of BSD Make
+- Microsoft Make (yes really)
 
-== Other tools
-TODO
+== Example C Toolchain Project
+#tree-list[
+- yacc (vendored)
+- cc (C compiler)
+    - cc (compiler driver)
+    - cpp (C preprocessor)
+    - cc1 (C -> IR)
+        - depends on yacc
+    - irc (IR -> ASM)
+        - depends on yacc
+- libelf
+- as (ASM -> OBJ)
+    - depends on libelf
+- ld (OBJ -> BIN)
+    - depends on libelf
+]
 
-Automake, CMake and Meson just generate "Makefiles" that look horrendous and are undebuggable.
-
-= Features
-== Features
-- Variables/Macros (`=`, `+=`, `!=`, ...)
-  - Macro Modifiers
-- Rules
- - Inference Rules (`.c.o:`)
-- Documentation System
-- Subdirectories
-  - "foreign" subdirectories
-  - exporting variables into subdirectories
-- Build directories
-  - `mk -o objdir`
-
-
-= Usage
-
-== Variables/Macros
+== Approach 1: Recursive Make
 ```make
-## Name of the program
-NAME = calculator
+# Top-level Makefile
+yacc:
+    ${MAKE} -C yacc
 
-## C compiler
-CC ?= cc
+cc: yacc
+    ${MAKE} -C cc
 
-## C compiler flags
-CFLAGS ?= -ansi -O2 -Wall -Wextra
+libelf:
+    ${MAKE} -C libelf
 
-# Source files
-SRC != echo *.[ch]
+as: libelf
+    ${MAKE} -C as
 
-# C source files
-CSRC = ${SRC:M*.c}
-
-# Object files
-OBJS = ${CSRC:.c=.o}
+ld: libelf
+    ${MAKE} -C ld
 ```
 
-== Rules
+== Approach 2: One Big Makefile
 ```make
+YACCOBJ = yacc/y1.o yacc/y2.o yacc/y3.o yacc/y4.o
+CCOBJ = cc/cc/cc.o
+IRCOBJ = cc/irc/main.o cc/irc/gen.o cc/irc/parse.o
+
+yacc/yacc: ${YACCOBJ}
+    ${CC} -o $@ ${YACCOBJ}
+
+cc/cc/cc: ${CCOBJ}
+    ${CC} -o $@ ${CCOBJ}
+
+cc/irc/irc: yacc/yacc ${IRCOBJ}
+    ${CC} -o $@ ${IRCOBJ}
+
+```
+
+== Approach 2.5: One Big Makefile, but using `include`
+```make
+# /yacc/Makefile
+YACCOBJ = yacc/y1.o yacc/y2.o yacc/y3.o yacc/y4.o
+yacc/yacc: ${YACCOBJ}
+    ${CC} -o $@ ${YACCOBJ}
+```
+
+```make
+# /cc/irc/Makefile
+IRCOBJ = cc/irc/main.o cc/irc/gen.o cc/irc/parse.o
+cc/irc/irc: yacc/yacc ${IRCOBJ}
+    ${CC} -o $@ ${IRCOBJ}
+
+```
+
+```make
+# /Makefile
+include yacc/Makefile
+include cc/Makefile
+...
+```
+
+== Conclusion (Drawbacks)
+=== Recursive Make:
+    - broken dependency handling
+    - needs special handling for parallel builds (`-jN`)
+
+=== One Big Makefile:
+    - every rule needs to be a full path
+    - must always use the "top-level" Makefile
+
+=== Both:
+    - too much complexity
+    - nobody wants to maintain a build system
+
+== Other tools: Automake, CMake, Meson
+Benefits:
+- They just generate these ugly "Makefiles" for you
+- Built-in support for nice features, like build directories
+
+Drawbacks:
+- Need to learn yet another build system language
+- Generate huge, complicated, and difficult to debug Makefiles
+- Additional build step (e.g. `./configure`)
+- May not be available for your platform
+
+== What if there was a make, that could do this?
+
+```make
+# /yacc/Makefile
+YACCOBJ = y1.o y2.o y3.o y4.o
+yacc: ${YACCOBJ}
+    ${CC} -o $@ ${YACCOBJ}
+```
+
+```make
+# /cc/irc/Makefile
+IRCOBJ = main.o gen.o parse.o
+irc: ../../yacc ${IRCOBJ}
+    ${CC} -o $@ ${IRCOBJ}
+```
+```make
+# /Makefile
+.SUBDIRS: yacc cc libelf as ld
+
+all: yacc cc libelf as ld
+clean: yacc/clean cc/clean libelf/clean as/clean ld/clean
+```
+
+= This is what `bmk` allows you to do
+
+= Other nice to have Features
+
+== Documentation Comments
+```make
+# /cc/irc/Mkfile
+NAME = irc
+
+## C Compiler
+CC = cc
+
+## C Compiler Flags
+CFLAGS = -O2 -Wall -Wextra
+
 ## Build ${NAME}
 all: ${NAME}
 
-## Clean build artifacts
+## Remove build artifacts for ${NAME}
 clean:
-    rm -f ${NAME:F}
-
-.c.o:
-    ${CC} -c -o $@ $< ${CFLAGS}
+    rm -f ${NAME}
 ```
 
-== Subdirectories
+#pagebreak()
+```sh
+/cc/irc $ mk -h
+...
+MACROS:
+CC              - C Compiler
+CFLAGS          - C Compiler Flags
+
+TARGETS:
+all             - Build irc
+clean           - Remove build artifacts for irc
+```
+
+#pagebreak()
+```sh
+/ $ mk -hv
+MACROS:
+CC              - Path to the C Compiler
+CFLAGS          - Default C Compiler Flags
+
+TARGETS:
+all             - Build: yacc, cc, libelf, as, ld
+clean           - Clean: yacc, cc, libelf, as, ld
+cc/all          - Build: cc, cpp, cc1, irc
+cc/clean        - Clean: cc, cpp, cc1, irc
+yacc/all        - Build yacc
+yacc/clean      - Remove build artifacts for yacc
+cc/cc1/all      - Build cc1
+cc/cc1/clean    - Remove build artifacts for cc1
+cc/irc/all      - Build irc
+cc/irc/clean    - Remove build artifacts for irc
+...
+```
+
+== Templates
 ```make
-# export variables CC and CFLAGS into subdirectories
-.EXPORT: CC CFLAGS
+# /Mkfile
+.template dir
+## Build: ${.SUBDIRS:J, }
+all: ${.SUBDIRS}
 
-.SUBDIRS: foo   # foo is just a normal subdirectory
-
-calc: ${OBJS} foo/libfoo.a bar/libbar.a
-    ${CC} -o $@ ${OBJS:F} -Lfoo -L${.OBJDIR}/bar -lfoo -lbar
+## Clean: ${.SUBDIRS:J, }
+clean: ${.SUBDIRS:=/clean}
+.endt
 ```
 
-== Foreign subdirectories
 ```make
-.FOREIGN: bar   # bar is a "foreign" different
+# /cc/Mkfile
+.SUBDIRS: cc cc1 cpp irc
 
-bar.tgz:
-    ftp -o $@ https://example.com/libbar-1.2.3.tar.gz
-
-extract-bar: bar.tgz
-    tar -xzf ${.OBJDIR}/bar.tgz -C ${.OBJDIR}
-    (cd ${.OBJDIR} && mv libbar-1.2.3 bar)
-
-# Check if the target $< in bar/ is fresh
-bar?:
-    test -d ${.OBJDIR}/bar && gmake -q -C ${.OBJDIR}/bar $<
-
-# Build target $< in bar/
-bar!: extract-bar
-    gmake -C ${.OBJDIR}/bar $<
+.expand dir
 ```
 
-= Portability
+== Build directories
+```sh
+/ $ mk -o obj cc/irc
+...
+/ $ find obj
+obj/
+obj/yacc/
+obj/yacc/yacc*
+obj/cc/
+obj/cc/irc/
+obj/cc/irc/irc*
+```
 
-== Usual platforms
-bmk will "just" work on your usual Unix-like plaforms:
+Note: This feature requires minor changes in the Mkfiles,
+like using `${.OBJDIR}`, or the `:F` modifier.
 
-- Linux
-- OpenBSD
-- FreeBSD
-- NetBSD
-- MacOS
+== Transparent integration with other build systems
+```make
+# /Mkfile
+.FOREIGN: libelf
 
-Note: all of them have CI
+.libelf-configure:
+    (cd libelf && ./configure --enable-static --disable-shared)
+    touch $@
 
-== Unusual plaforms
-It even works on some unusual platforms:
+libelf?:
+    test -e libelf/Makefile
+    gmake -q -C libelf $<
 
-- Haiku (libbsd required for some reason)
-- 2.11BSD (PDP-11)
-- 4.3BSD (VAX)
-- Xenix
-- Minix-vmd
+libelf!: .libelf-configure
+    gmake -C libelf $<
 
-== Missing/Untested
-- Windows
-- Solaris
-- Plan 9
-- AIX
-- HP-UX
+example-elf: example.c libelf/libelf.a
+    ${CC} -o $@ example.c -Llibelf -lelf
+```
 
-= Setup
+== Features
+- Variables/Macros (`=`, `+=`, `!=`, ...)
+  - Macro Modifiers (`:J`, `:U`, ...)
+- Rules
+ - Inference Rules (`.c.o:`)
+- Subdirectories (`.SUBDIRS: yacc cc ...`)
+  - "foreign" subdirectories (`.FOREIGN: libelf`)
+  - exporting variables into subdirectories (`.EXPORT: CC CFLAGS ...`)
+- Documentation System (`## DOC Comment`)
+- Build directories
+  - `mk -o objdir`
+
+= Where can I get this?
 
 == Getting bmk(1)
-https://github.com/realchonk/bmk
+#pad(rest: 24pt)[
+    #align(center)[
+        #qr-code("https://github.com/realchonk/bmk", width: 4.5cm)
+        #text(size: 18pt)[https://github.com/realchonk/bmk]
+    ]
+]
 
 == Installation
-
 ```sh
 # Generate a configure script, if not already available:
 # This requires at least autoconf version 2.52.
@@ -149,8 +285,39 @@ $ make
 $ make install
 ```
 
-= Summary
-== Summary
-TODO
+= Portability
+
+== Usual platforms
+`bmk` will "just" work on your usual Unix-like plaforms:
+
+- Linux
+- OpenBSD
+- FreeBSD
+- NetBSD
+- MacOS
+
+Note: all of them have CI
+
+== Unusual plaforms
+`bmk` even works on some unconventional platforms:
+
+- Haiku (libbsd required for some reason)
+- 2.11BSD (PDP-11)
+- 4.3BSD (VAX)
+- Xenix
+- Minix-vmd
+
+Yes, it was #emph("very") painful. \
+For your own mental sanity, \
+please don't look at the code.
+
+== Missing/Untested platforms
+- Solaris
+- Plan 9
+- AIX
+- HP-UX
+- Windows (just use WSL)
+
+= Thanks for listening
 
 /* vim: set ts=4 sw=4 et: */
