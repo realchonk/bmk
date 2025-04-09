@@ -3308,11 +3308,13 @@ struct scope *sc;
 	fputs ("-S                            - stop processing when errors are encountered (default)\n", stderr);
 	fputs ("-v                            - verbose output\n", stderr);
 
-	fputs ("\nMACROS:\n", stderr);
-	help_macros (sc);
+	if (sc != NULL) {
+		fputs ("\nMACROS:\n", stderr);
+		help_macros (sc);
 
-	fputs ("\nTARGETS:\n", stderr);
-	help_files (prefix, sc);
+		fputs ("\nTARGETS:\n", stderr);
+		help_files (prefix, sc);
+	}
 
 	return 1;
 }
@@ -3545,11 +3547,13 @@ char **argv;
 
 	path = parse_path (".");
 	sc = parse_recursive (path, makefile);
-	if (sc == NULL)
-		errx (1, "failed to find or parse makefile");
 
 	if (dohelp)
 		return help (path, sc);
+
+	if (sc == NULL)
+		errx (1, "failed to find or parse makefile");
+
 
 	if (pr) {
 		print_sc (path, sc);

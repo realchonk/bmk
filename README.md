@@ -42,4 +42,4 @@ This might be necessary on platforms that are too broken to run a configure scri
 - https://got.stuerz.xyz/?action=summary&path=desktop.git
 
 ## TODO
-- create CI for 2.11BSD
+- automate CI for 2.11BSD and 4.3BSD
