@@ -107,11 +107,11 @@ include cc/Makefile
     - nobody wants to maintain a build system
 
 == Other tools: Automake, CMake, Meson
-Benefits:
+=== Benefits:
 - They just generate these ugly "Makefiles" for you
 - Built-in support for nice features, like build directories
 
-Drawbacks:
+=== Drawbacks:
 - Need to learn yet another build system language
 - Generate huge, complicated, and difficult to debug Makefiles
 - Additional build step (e.g. `./configure`)
@@ -259,7 +259,7 @@ example-elf: example.c libelf/libelf.a
  - Inference Rules (`.c.o:`)
 - Subdirectories (`.SUBDIRS: yacc cc ...`)
   - "foreign" subdirectories (`.FOREIGN: libelf`)
-  - exporting variables into subdirectories (`.EXPORT: CC CFLAGS ...`)
+  - exporting variables into subdirectories (`.EXPORTS: CC CFLAGS ...`)
 - Documentation System (`## DOC Comment`)
 - Build directories
   - `mk -o objdir`
