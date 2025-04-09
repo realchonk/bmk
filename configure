@@ -1,0 +1,492 @@
+#!/bin/sh
+
+PREFIX='/usr/local'
+BINDIR='${PREFIX}/bin'
+MANDIR='${PREFIX}/man'
+CONFIG_SHELL='sh'
+CONFIG_MAKEFILE='Mkfile'
+
+for arg
+do
+	value=`echo "x$arg" | sed 's/^x[^=]*//'`
+	case "$arg" in
+	--prefix=*)
+		PREFIX=$value
+		;;
+	--bindir=*)
+		BINDIR=$value
+		;;
+	--mandir=*)
+		MANDIR=$value
+		;;
+	--with-shell=*)
+		CONFIG_SHELL=$value
+		;;
+	--with-makefile=*)
+		CONFIG_MAKEFILE=$value
+		;;
+	-h|--help)
+		echo "usage: ./configure [--prefix=PREFIX]" >&2
+		exit 1
+		;;
+	esac
+done
+
+try_preprocess='
+{
+	echo "conftest.c:";
+	cat conftest.c;
+	echo "$CPP -o conftest$$.i conftest.c $CPPFLAGS $CFLAGS";
+	$CPP -o conftest$$.i conftest.c $CPPFLAGS $CFLAGS;
+} >>config.log 2>&1'
+try_compile='
+{
+	echo "conftest.c:";
+	cat conftest.c;
+	echo "$CC -c -o conftest$$.o conftest.c $CPPFLAGS $CFLAGS";
+	$CC -c -o conftest$$.o conftest.c $CPPFLAGS $CFLAGS;
+} >>config.log 2>&1'
+try_link='
+{
+	echo "conftest.c:";
+	cat conftest.c;
+	echo "$CC -o conftest$$ conftest.c $CPPFLAGS $CFLAGS $LDFLAGS";
+	$CC -o conftest$$ conftest.c $CPPFLAGS $CFLAGS $LDFLAGS;
+} >>config.log 2>&1'
+translate='tr a-z A-Z | sed "s/[^A-Z]/_/g"'
+
+rm -f config.h config.mk config.log
+
+if test -z "$CC"; then
+	for cc in cc gcc egcc clang pcc tcc
+	do
+		CC=$cc
+		echo "checking for $cc..." >>config.log
+		echo -n "checking for $cc... "
+		cat >conftest.c <<EOF
+int main ()
+{
+	return 0;
+}
+EOF
+		if eval "$try_link"; then
+			break
+		fi
+		CC=
+	done
+	if test -z "$CC"; then
+		echo no
+		echo "error: no C compiler found." >>config.log
+		echo "error: no C compiler found." >&2
+		exit 1
+	fi
+	echo "$CC"
+fi
+
+echo 'checking if the C compiler works...' >>config.log
+echo -n 'checking if the C compiler works... '
+cat >conftest.c <<EOF
+int main ()
+{
+	return 42;
+}
+EOF
+
+eval "$try_link"
+if test $? -ne 0; then
+	echo no
+	echo 'error: compiler cannot produce working binary' >&2
+	exit 1
+fi
+
+./conftest$$
+if test $? -ne 42; then
+	echo no
+	echo 'error: binary produced by compiler doesnt work' >&2
+	exit 1
+fi
+echo yes
+
+echo 'checking how to run the C preprocessor...' >>config.log
+echo -n 'checking how to run the C preprocessor... '
+if test -z "$CPP"; then
+	for cpp in "$CC -E" "$CC -E -traditional-cpp" 'cpp' '/lib/cpp'
+	do
+		CPP=$cpp
+		eval "$try_preprocess" &&break
+		CPP=
+	done
+	if test -z "$CPP"; then
+		echo no
+		echo 'error: dont know how to run the C preprocessor' >&2
+		exit 1
+	fi
+fi
+echo "$CPP"
+
+cflags='
+-ansi
+-Wall
+-Wextra
+-Wno-implicit-int
+-Wno-deprecated-non-prototype
+-O2
+'
+
+for flag in $cflags
+do
+	echo "checking whether the C compiler accepts $flag..." >>config.log
+	echo -n "checking whether the C compiler accepts $flag... "
+	saved_CFLAGS=$CFLAGS
+	CFLAGS=$flag
+	if eval "$try_link"; then
+		echo yes
+		CFLAGS="$saved_CFLAGS $flag"
+	else
+		echo no
+		CFLAGS=$saved_CFLAGS
+	fi
+done
+
+cat >config.h <<EOF
+/* Configuration */
+#define SHELL "$CONFIG_SHELL"
+#define MAKEFILE "$CONFIG_MAKEFILE"
+
+/* System Extensions */
+
+#define _ALL_SOURCE 1		/* Enable extensions on AIX, Interix, z/OS */
+#define _DARWIN_C_SOURCE 1	/* Enable general extensions on MacOS */
+#define __EXTENSIONS__ 1	/* Enable general extensions on Solaris */
+#define _GNU_SOURCE 1		/* Enable GNU extensions on systems that have them */
+#define _BSD_SOURCE 1		/* Enable BSD functions */
+#define _NETBSD_SOURCE 1	/* Enable NetBSD compatibility extensions on Minix */
+#define _OPENBSD_SOURCE 1	/* Enable OpenBSD compatibility extensions on NetBSD */
+#define _POSIX_SOURCE 1		/* Enable POSIX behavior */
+#define _XOPEN_SOURCE 800	/* Enable X/Open extensions */
+
+/* Headers */
+EOF
+headers='
+err.h
+fnmatch.h
+inttypes.h
+libgen.h
+limits.h
+memory.h
+stdint.h
+stdio.h
+stdlib.h
+string.h
+strings.h
+sys/stat.h
+sys/time.h
+sys/timeb.h
+sys/types.h
+sys/wait.h
+time.h
+unistd.h
+'
+
+for header in $headers
+do
+	echo "checking for <$header>..." >>config.log
+	echo -n "checking for <$header>... "
+
+	cat >conftest.c <<EOF
+#include <$header>
+int main ()
+{
+	return 0;
+}
+EOF
+
+	name=`echo "$header" | eval "$translate"`
+	if eval "$try_preprocess"; then
+		echo "#define HAVE_$name 1" >>config.h
+		echo yes
+	else
+		echo "#undef HAVE_$name" >>config.h
+		echo no
+	fi
+done
+
+echo >>config.h
+echo "/* Functions */" >>config.h
+funcs='
+basename
+clock_gettime
+dirname
+fmemopen
+fnmatch
+fork
+ftime
+getcwd
+gettimeofday
+lstat
+memmove
+reallocarray
+realpath
+strdup
+strerror
+strsep
+strtol
+'
+
+# tcc needs -static, otherwise linking will falsly succeed
+old_LDFLAGS=$LDFLAGS
+#LDFLAGS="$LDFLAGS -static"
+for func in $funcs
+do
+	echo "checking for $func()..." >>config.log
+	echo -n "checking for $func()... "
+
+	cat >conftest.c <<EOF
+char $func ();
+char (*f) ();
+
+int main ()
+{
+	f = $func;
+	return 0;
+}
+EOF
+
+	name=`echo "$func" | eval "$translate"`
+	if eval "$try_link"; then
+		echo yes
+		echo "#define HAVE_$name 1" >>config.h
+	else
+		echo no
+		echo "#undef HAVE_$name" >>config.h
+	fi
+done
+LDFLAGS=$old_LDFLAGS
+
+echo >>config.h
+echo '/* Types */' >>config.h
+for type in 'size_t=unsigned int' 'ssize_t=int' 'pid_t=int'
+do
+	name=`echo "$type" | sed 's/=.*//'`
+	value=`echo "$type" | sed 's/^[^=]*=//'`
+
+	echo "checking for $name..." >>config.log
+	echo -n "checking for $name... "
+
+	cat >conftest.c <<EOF
+#include "config.h"
+#if HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+#if HAVE_STDIO_H
+#include <stdio.h>
+#endif
+#if HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
+extern $name x;
+
+int main ()
+{
+	return 0;
+}
+EOF
+
+	if eval "$try_compile"; then
+		echo yes
+	else
+		echo no
+		echo "#define $name $value" >>config.h
+	fi
+done
+
+echo 'checking if struct timespec exists...' >>config.log
+echo -n 'checking if struct timespec exists... '
+cat >conftest.c <<EOF
+#include "config.h"
+#if HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+#if HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
+
+int main ()
+{
+	struct timespec ts;
+	ts.tv_sec = 0;
+	ts.tv_nsec = 0;
+	return 0;
+}
+EOF
+if eval "$try_compile"; then
+	echo yes
+	echo '#define HAVE_TIMESPEC 1' >>config.h
+else
+	echo no
+	echo '#undef HAVE_TIMESPEC' >>config.h
+fi
+
+echo 'checking if struct stat has st_mtim...' >>config.log
+echo -n 'checking if struct stat has st_mtim... '
+cat >conftest.c <<EOF
+#include "config.h"
+#if HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+#if HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
+#if HAVE_SYS_STAT_H
+#include <sys/stat.h>
+#endif
+
+int main ()
+{
+	struct stat st;
+	st.st_mtim.tv_sec = 0;
+	return 0;
+}
+EOF
+if eval "$try_compile"; then
+	echo yes
+	echo '#define HAVE_STAT_MTIM 1' >>config.h
+else
+	echo no
+	echo '#undef HAVE_STAT_MTIM ' >>config.h
+fi
+
+echo >>config.h
+echo '/* Special Tests */' >>config.h
+
+echo 'checking if <sys/file.h> defines F_OK...' >>config.log
+echo -n 'checking if <sys/file.h> defines F_OK... '
+cat >conftest.c <<EOF
+/* 2.11BSD defines *_OK macros in <sys/file.h> */
+#ifdef F_OK
+#undef F_OK
+#endif
+#include <sys/file.h>
+
+int main ()
+{
+	return F_OK;
+}
+EOF
+if eval "$try_compile"; then
+	echo yes
+	echo "#define NEED_SYS_FILE_H 1" >>config.h
+else
+	echo no
+	echo "#undef NEED_SYS_FILE_H" >>config.h
+fi
+
+echo 'checking if <time.h> is needed...' >>config.log
+echo -n 'checking if <time.h> is needed... '
+cat >conftest.c <<EOF
+/* BSDs include <time.h> in <sys/time.h> */
+/* When including both in 2.11BSD, struct tm is defined twice. */
+#define tm test_tm
+#include <sys/time.h>
+#undef tm
+
+struct test_tm x;
+EOF
+if eval "$try_compile"; then
+	echo no
+	echo "#undef NEED_TIME_H" >>config.h
+else
+	echo yes
+	echo "#define NEED_TIME_H 1" >>config.h
+fi
+
+echo 'checking if the C compiler supports C99 designated intializers...' >>config.log
+echo -n 'checking if the C compiler supports C99 designated intializers... '
+cat >conftest.c <<EOF
+/* Some compilers are just too old */
+struct test {
+	char *name;
+	int value;
+} obj = { .name = "test", .value = 42 };
+EOF
+if eval "$try_compile"; then
+	echo yes
+	echo '#define HAVE_DESIGNATED_INITIALIZERS 1' >>config.h
+else
+	echo no
+	echo '#undef HAVE_DESIGNATED_INITIALIZERS' >>config.h
+fi
+
+echo 'checking if strsep() actually works...' >>config.log
+echo -n 'checking if strsep() actually works... '
+cat >conftest.c <<EOF
+/* 2.11BSD has a different strsep() functions, which is more like strtok(). */
+#include <stdio.h> /* NULL */
+
+extern char *strsep ();
+extern int strcmp ();
+
+int main ()
+{
+	char *s, *t, x[] = "/usr/local/bin", *words[] = {
+		"",
+		"usr",
+		"local",
+		"bin"
+	};
+	int i;
+
+	for (i = 0, s = x; i < 4 && (t = strsep (&s, "/")) != NULL; ++i) {
+		if (strcmp (t, words[i]) != 0)
+			return i;
+	}
+	return 0;
+}
+EOF
+if eval "$try_link" && ./conftest$$; then
+	echo yes
+	echo '#define WORKS_STRSEP 1' >>config.h
+else
+	echo no
+	echo '#undef WORKS_STRSEP' >>config.h
+fi
+
+echo 'checking if sys_errlist[] exists...' >>config.log
+echo -n 'checking if sys_errlist[] exists... '
+cat >conftest.c <<EOF
+#include <stdio.h>
+extern char *sys_errlist[];
+int main ()
+{
+	printf ("%s\n", sys_errlist[1]);
+	return 0;
+}
+EOF
+if eval "$try_link"; then
+	echo yes
+	echo '#define HAVE_SYS_ERRLIST 1' >>config.h
+else
+	echo no
+	echo '#undef HAVE_SYS_ERRLIST' >>config.h
+fi
+
+cat >config.mk <<EOF
+CC = $CC
+CPP = $CPP
+CFLAGS = $CFLAGS
+CPPFLAGS = $CPPFLAGS -DHAVE_CONFIG_H
+LDFLAGS = $LDFLAGS
+
+PREFIX = $PREFIX
+BINDIR = $BINDIR
+MANDIR = $MANDIR
+EOF
+
+sed	-e 's/^-include.*/# &/'	\
+	-e 's/^[a-zA-Z]* ?=.*$/# &/'	\
+	< Mkfile > Makefile.new
+
+cat config.mk Makefile.new >Makefile
+
+rm -f Makefile.new conftest$$ conftest$$.i conftest$$.o conftest.c

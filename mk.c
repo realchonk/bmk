@@ -1530,11 +1530,7 @@ struct expand_ctx *ctx;
 		err (1, "fork()");
 
 	args[i++] = m_shell.value;
-#ifndef HAVE_BROKEN_SHELL
-	if (!ign)
-		args[i++] = "-e";
-#endif
-	args[i++] = "-c";
+	args[i++] = ign ? "-c" : "-ec";
 	args[i++] = ecmd;
 	args[i] = NULL;
 
