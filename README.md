@@ -1,12 +1,5 @@
-# Dependencies
-Generating the configure script requires a few dependencies:
-- autoconf (>= 2.52, for extra portability version 2.52 should be used, as later versions make more assumptions about the host)
-
 # Bootstrap
 ```sh
-# Generate the configure script.
-./autogen.sh
-
 # Configure bmk and generate a config.mk file.
 ./configure [--prefix=/usr/local]
 
@@ -16,10 +9,6 @@ make
 # Install bmk.
 make install
 ```
-
-# Building without Autoconf
-bmk can be built without autoconf, but this requires writing your own config.h and config.mk.
-This might be necessary on platforms that are too broken to run a configure script, such as Minix-vmd.
 
 # Regularly Tested Platforms (CI)
 - [amd64-openbsd](https://builds.sr.ht/~realchonk/bmk/commits/main/openbsd)

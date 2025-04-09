@@ -3,7 +3,8 @@ xmk
 mk
 *.core
 *.swp
-configure
-autom4te.cache
+config.mk
+config.h
+config.log
 compile_flags.txt
 bmk.pdf

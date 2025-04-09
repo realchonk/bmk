@@ -31,8 +31,7 @@ clean:
 
 ## Remove even more stuff
 distclean: clean
-	rm -rf autom4te.cache
-	rm -f Makefile configure config.status config.log config.h.in config.h config.mk aclocal.m4 *~
+	rm -f Makefile config.log config.h config.h config.mk
 
 ## Install mk into ${PREFIX}
 install: mk mk.1

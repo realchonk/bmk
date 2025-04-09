@@ -35,10 +35,7 @@ switch -- $machine {
 puts "Cleaning..."
 exec mk distclean
 
-puts "Generating configure script..."
-exec -ignorestderr ./autogen.sh
-
-set files {mk.[1ch] compats.[ch] configure config.h.in config.mk.in Mkfile build-aux/install-sh}
+set files {mk.[1ch] compats.[ch] configure Mkfile}
 set globbed [lmap f $files {glob "$f"}]
 set prefixed [lmap f [join $globbed] {expr {"mk/$f"}}]
 
