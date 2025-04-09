@@ -989,8 +989,8 @@ struct expand_ctx *ctx;
 			errx (1, "%s: cannot use $@ or ${.TARGET} here", sc_path_str (sc));
 		str_puts (out, ctx->target);
 	} else if (strcmp (name, ".IMPSRC") == 0) {
-		if (ctx->dep0 == NULL)
-			errx (1, "%s: cannot use $< or ${.IMPSRC} here", sc_path_str (sc));
+		/*if (ctx->dep0 == NULL)
+			errx (1, "%s: cannot use $< or ${.IMPSRC} here", sc_path_str (sc));*/
 
 		if (ctx->dep0 == NULL)
 			return 0;
