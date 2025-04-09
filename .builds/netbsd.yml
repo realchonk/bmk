@@ -1,21 +1,15 @@
 image: netbsd/latest
-packages:
-  - autoconf
-  - automake
 sources:
   - https://github.com/realchonk/bmk
 tasks:
   - build-bootstrap: |
       cd bmk
-      touch config.mk
-      ./autogen.sh
       ./configure
       make
       sudo make install
       make distclean
   - build-self: |
       cd bmk
-      ./autogen.sh
       ./configure
       mk
       sudo mk install

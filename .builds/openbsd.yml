@@ -5,26 +5,20 @@ sources:
 packages:
   - tcc
 tasks:
-  - install-deps: |
-      pkg_info -Q autoconf | grep '^autoconf-2.52' | xargs doas pkg_add
   - build-bootstrap: |
       cd bmk
-      touch config.mk
-      ./autogen.sh
       ./configure
       make
       doas make install
       make distclean
   - build-tcc: |
       cd bmk
-      ./autogen.sh
       CC=tcc ./configure
       mk
       doas mk install
       mk distclean
   - build-self: |
       cd bmk
-      ./autogen.sh
       ./configure
       mk
       doas mk install
