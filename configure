@@ -162,8 +162,6 @@ cat >config.h <<EOF
 #define _BSD_SOURCE 1		/* Enable BSD functions */
 #define _NETBSD_SOURCE 1	/* Enable NetBSD compatibility extensions on Minix */
 #define _OPENBSD_SOURCE 1	/* Enable OpenBSD compatibility extensions on NetBSD */
-#define _POSIX_SOURCE 1		/* Enable POSIX behavior */
-#define _XOPEN_SOURCE 800	/* Enable X/Open extensions */
 
 /* Headers */
 EOF
