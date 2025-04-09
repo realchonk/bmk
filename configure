@@ -124,15 +124,50 @@ if test -z "$CPP"; then
 fi
 echo "$CPP"
 
+echo 'checking C compiler vendor...' >>config.log
+echo -n 'checking C compiler vendor... '
+for v in 'pcc:__PCC__' 'clang:__clang__' 'gcc:__GNUC__'; do
+	vendor=`echo "$v" | sed 's/:.*$//'`
+	macro=`echo "$v" | sed 's/^[^:]*://'`
+	cat >conftest.c <<EOF
+#if !($macro)
+this is an error
+#endif
+EOF
+	if eval "$try_compile"; then
+		cc_vendor=$vendor
+		break
+	fi
+done
+if test -z "$cc_vendor"; then
+	cc_vendor=unknown
+fi
+echo "$cc_vendor"
+
+cflags_gcc='
+-Wno-return-type
+-Wno-missing-parameter-type
+'
+cflags_clang='
+-Wno-deprecated-non-prototype
+'
+cflags_pcc='-Wno-missing-prototypes'
+cflags_unknown=''
 cflags='
 -ansi
 -Wall
 -Wextra
 -Wno-implicit-int
--Wno-deprecated-non-prototype
 -O2
 '
+eval cflags="\"\$cflags \$cflags_$cc_vendor\""
 
+cat >conftest.c <<EOF
+int main ()
+{
+	return 0;
+}
+EOF
 for flag in $cflags
 do
 	echo "checking whether the C compiler accepts $flag..." >>config.log
