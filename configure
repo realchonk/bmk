@@ -606,6 +606,24 @@ else
 	echo '#undef HAVE_VOID_PTR' >>config.h
 fi
 
+echo 'checking if the C compiler understands const...' >>config.log
+echo -n 'checking if the C compiler understands const... '
+cat >conftest.c <<EOF
+int main ()
+{
+	int x;
+	const int *p = &x;
+	x = 0;
+	return *p;
+}
+EOF
+if eval "$try_compile"; then
+	echo yes
+else
+	echo no
+	echo '#define const' >>config.h
+fi
+
 cat >config.mk <<EOF
 CC = $CC
 CPP = $CPP
