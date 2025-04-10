@@ -70,6 +70,7 @@ translate='tr a-z A-Z | sed "s/[^A-Z]/_/g"'
 
 clean="rm -f Makefile.new conftest$$ conftest$$.i conftest$$.o conftest.c"
 trap "$clean; exit 1" 1 2 13 15
+fail="$clean; exit 1"
 
 rm -f config.h config.mk config.log
 
@@ -107,7 +108,7 @@ EOF
 		echo no
 		echo "error: no C compiler found." >>config.log
 		echo "error: no C compiler found." >&2
-		exit 1
+		$fail
 	fi
 	echo "$CC"
 fi
@@ -125,7 +126,7 @@ eval "$try_link"
 if test $? -ne 0; then
 	echo no
 	echo 'error: compiler cannot produce working binary' >&2
-	exit 1
+	$fail
 fi
 
 if test "$cross_compiling" != 'yes'; then
@@ -137,7 +138,7 @@ if test "$cross_compiling" != 'yes'; then
 	else
 		echo no
 		echo 'error: binary produced by compiler doesnt work' >&2
-		exit 1
+		$fail
 	fi
 fi
 echo yes
@@ -157,7 +158,7 @@ if test -z "$CPP"; then
 	if test -z "$CPP"; then
 		echo no
 		echo 'error: dont know how to run the C preprocessor' >&2
-		exit 1
+		$fail
 	fi
 fi
 echo "$CPP"
