@@ -3,7 +3,7 @@
 #endif
 
 #ifndef HAVE_REALLOCARRAY
-extern void *reallocarray ();
+extern VOID *reallocarray ();
 #endif /* HAVE_REALLOCARRAY */
 
 #ifdef HAVE_ERR_H
