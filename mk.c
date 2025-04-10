@@ -1846,7 +1846,7 @@ ret:
 struct scope *
 new_subdir (parent, name)
 struct scope *parent;
-char *name;
+const char *name;
 {
 	struct directory *pdir;
 	struct scope *sub;
@@ -1858,7 +1858,7 @@ char *name;
 	sub = new (struct scope);
 	sub->next = pdir->subdirs;
 	sub->type = SC_DIR;
-	sub->name = name;
+	sub->name = strdup (name);
 	sub->parent = parent;
 	sub->makefile = NULL;
 	sub->created = 0;
@@ -2029,7 +2029,7 @@ char *s;
 		if (*subdir == '\0')
 			continue;
 
-		name = strdup (trim (subdir));
+		name = trim (subdir);
 		sub = new_subdir (sc, name);
 		sub->type = SC_DIR;
 		sub->makefile = MAKEFILE;
@@ -2057,7 +2057,7 @@ char *s;
 		if (*subdir == '\0')
 			continue;
 
-		name = strdup (trim (subdir));
+		name = trim (subdir);
 		sub = new_subdir (sc, name);
 		sub->type = SC_CUSTOM;
 		sub->makefile = NULL;
