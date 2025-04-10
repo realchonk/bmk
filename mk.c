@@ -1416,7 +1416,7 @@ char *
 expand (sc, prefix, s, ctx)
 struct scope *sc;
 const struct path *prefix;
-char *s;
+const char *s;
 struct expand_ctx *ctx;
 {
 	str_t out;
@@ -1436,7 +1436,7 @@ char *
 evalcom (sc, dir, cmd)
 struct scope *sc;
 const struct path *dir;
-char *cmd;
+const char *cmd;
 {
 	char *args[4];
 	ssize_t i, n;
@@ -1494,7 +1494,7 @@ char *cmd;
 runcom (sc, prefix, cmd, ctx, rule)
 struct scope *sc;
 const struct path *prefix;
-char *cmd, *rule;
+const char *cmd, *rule;
 struct expand_ctx *ctx;
 {
 	char *ecmd, *args[5];
@@ -1868,7 +1868,7 @@ char *name, *value, *help;
 struct macro *prepend;
 {
 	struct macro *m;
-	char *s;
+	const char *s;
 
 	assert (name != NULL);
 	assert (value != NULL);
@@ -1876,6 +1876,7 @@ struct macro *prepend;
 	/* check name */
 	if (*name == '\0')
 		errx (1, "new_macro(): macro name is empty");
+
 	for (s = name; *s != '\0'; ++s) {
 		if (!ismname (*s))
 			errx (1, "invalid macro name: '%s'", name);
@@ -2015,8 +2016,8 @@ const struct path *dir;
 char *s;
 {
 	struct scope *sub;
-	char *subdir, *name;
-	const char *path;
+	char *subdir;
+	const char *path, *name;
 
 	strip_comment (s);
 
@@ -2044,7 +2045,8 @@ char *s;
 {
 	struct custom *cs;
 	struct scope *sub;
-	char *subdir, *name;
+	const char *name;
+	char *subdir;
 
 	strip_comment (s);
 
@@ -2071,7 +2073,7 @@ struct scope *sc;
 char *s;
 {
 	struct macro *m;
-	char *name;
+	const char *name;
 
 	strip_comment (s);
 
