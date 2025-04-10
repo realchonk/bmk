@@ -63,6 +63,9 @@ Report bugs to <benni@stuerz.xyz>.
 EOF
 		exit 1
 		;;
+	-*)
+		echo "warn: unrecognized option: $arg" >&2
+		;;
 	esac
 done
 
