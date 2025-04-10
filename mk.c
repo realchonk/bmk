@@ -62,7 +62,7 @@
 
 extern int errno;
 
-static char *cpath, *objdir = NULL;
+static const char *cpath, *objdir = NULL;
 static int verbose = 0, cline = 0, conterr = 0;
 static struct timespec time_zero;
 
@@ -2419,7 +2419,7 @@ char *s, **name, **value;
 do_parse (sc, dir, path, file)
 struct scope *sc;
 const struct path *dir;
-char *path;
+const char *path;
 FILE *file;
 {
 	extern parse ();
