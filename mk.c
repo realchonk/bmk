@@ -2339,7 +2339,8 @@ size_t n;
 }
 
 is_directive (out, s, name)
-char **out, *s, *name;
+char **out, *s;
+const char *name;
 {
 	size_t len;
 
@@ -2363,7 +2364,8 @@ char **out, *s, *name;
 }
 
 is_target (out, s, name)
-char **out, *s, *name;
+char **out, *s;
+const char *name;
 {
 	size_t len;
 
