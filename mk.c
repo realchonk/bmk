@@ -228,7 +228,7 @@ str_t *s;
 	return 0;
 }
 
-char *
+const char *
 str_get (s)
 str_t *s;
 {
@@ -1052,7 +1052,8 @@ struct expand_ctx *ctx;
 	extern subst ();
 	struct macro *m;
 	struct filetime ft;
-	char *orig = *s, *t, *u, *v, *w, *pattern;
+	char *orig = *s, *t, *u, *v, *w;
+	const char *pattern;
 	str_t name, old_str, new_str;
 	int first;
 
@@ -1677,7 +1678,8 @@ const struct path *prefix;
 char **s;
 {
 	str_t left, right;
-	char *sl, *sr, *el, *er;
+	const char *sl, *sr;
+	char *el, *er;
 	long il, ir;
 	int cmp, x, icmp;
 
