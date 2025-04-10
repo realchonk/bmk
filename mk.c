@@ -442,7 +442,7 @@ const char *s;
 {
 	size_t len = 0, cap = 4;
 	struct path *p;
-	char *t;
+	const char *t;
 
 	p = calloc (cap + 1, sizeof (struct path));
 
@@ -2816,7 +2816,7 @@ const char *name;
 	struct inference *inf;
 	struct file *sf;
 	char *sn, *base;
-	char *ext;
+	const char *ext;
 
 	ext = strrchr (name, '.');
 	base = strdup (name);
