@@ -3255,8 +3255,6 @@ struct scope *sc;
 	p = path_to_str (prefix);
 	if (strcmp (p, ".") == 0) {
 		p = NULL;
-	} else {
-		/* p += 2; /* skip ./ */
 	}
 
 	for (f = sc_dir (sc)->fhead; f != NULL; f = f->next) {
