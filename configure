@@ -6,6 +6,10 @@ MANDIR='${PREFIX}/man'
 CONFIG_SHELL='sh'
 CONFIG_MAKEFILE='Mkfile'
 
+build_alias=
+host_alias=
+cross_compiling=no
+
 for arg
 do
 	value=`echo "x$arg" | sed 's/^x[^=]*=//'`
@@ -24,6 +28,15 @@ do
 		;;
 	--with-makefile=*)
 		CONFIG_MAKEFILE=$value
+		;;
+	--build=*)
+		build_alias=$value
+		;;
+	--host=*)
+		host_alias=$value
+		;;
+	--target=*)
+		echo "warn: '$arg' ignored, because this project is not a cross-compiler" >&2
 		;;
 	-h|--help)
 		echo "usage: ./configure [--prefix=PREFIX]" >&2
@@ -57,10 +70,22 @@ translate='tr a-z A-Z | sed "s/[^A-Z]/_/g"'
 
 rm -f config.h config.mk config.log
 
+if test "$host_alias"; then
+	if test -z "$build_alias"; then
+		cross_compiling=maybe
+	else
+		cross_compiling=yes
+	fi
+fi
+
 if test -z "$CC"; then
+	cc_prefix=
+	if test "$host_alias"; then
+		cc_prefix="${host_alias}-"
+	fi
 	for cc in cc gcc egcc clang pcc tcc
 	do
-		CC=$cc
+		CC="${cc_prefix}${cc}"
 		echo "checking for $cc..." >>config.log
 		echo -n "checking for $cc... "
 		cat >conftest.c <<EOF
@@ -73,6 +98,7 @@ EOF
 			break
 		fi
 		CC=
+		echo no
 	done
 	if test -z "$CC"; then
 		echo no
@@ -99,13 +125,22 @@ if test $? -ne 0; then
 	exit 1
 fi
 
-./conftest$$
-if test $? -ne 42; then
-	echo no
-	echo 'error: binary produced by compiler doesnt work' >&2
-	exit 1
+if test "$cross_compiling" != 'yes'; then
+	./conftest$$ >>config.log 2>&1
+	if test $? -eq 42; then
+		cross_compiling=no
+	elif test "$cross_compiling" = 'maybe'; then
+		cross_compiling=yes
+	else
+		echo no
+		echo 'error: binary produced by compiler doesnt work' >&2
+		exit 1
+	fi
 fi
 echo yes
+
+echo "checking if we are cross compiling... $cross_compiling" >>config.log
+echo "checking if we are cross compiling... $cross_compiling"
 
 echo 'checking how to run the C preprocessor...' >>config.log
 echo -n 'checking how to run the C preprocessor... '
@@ -477,7 +512,7 @@ int main ()
 	return 0;
 }
 EOF
-if eval "$try_link" && ./conftest$$; then
+if eval "$try_link" && { ./conftest$$ >>config.log 2>&1; test "$cross_compiling" = 'yes'; }; then
 	echo yes
 	echo '#define WORKS_STRSEP 1' >>config.h
 else
