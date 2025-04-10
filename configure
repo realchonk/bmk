@@ -68,6 +68,9 @@ try_link='
 } >>config.log 2>&1'
 translate='tr a-z A-Z | sed "s/[^A-Z]/_/g"'
 
+clean="rm -f Makefile.new conftest$$ conftest$$.i conftest$$.o conftest.c"
+trap "$clean; exit 1" 1 2 13 15
+
 rm -f config.h config.mk config.log
 
 if test "$host_alias"; then
@@ -557,4 +560,4 @@ sed	-e 's/^-include.*/# &/'	\
 
 cat config.mk Makefile.new >Makefile
 
-rm -f Makefile.new conftest$$ conftest$$.i conftest$$.o conftest.c
+$clean
