@@ -89,7 +89,7 @@ size_t num, size;
 #ifndef HAVE_ERR_H
 
 errx (eval, fmt, a, b, c, d)
-char *fmt;
+const char *fmt;
 long a, b, c, d;
 {
 	fputs ("mk: error: ", stderr);
@@ -99,7 +99,7 @@ long a, b, c, d;
 }
 
 err (eval, fmt, a, b, c, d)
-char *fmt;
+const char *fmt;
 long a, b, c, d;
 {
 	fputs ("mk: error: ", stderr);
@@ -111,7 +111,7 @@ long a, b, c, d;
 }
 
 warnx (fmt, a, b, c, d)
-char *fmt;
+const char *fmt;
 long a, b, c, d;
 {
 	fputs ("mk: warn: ", stderr);
@@ -120,7 +120,7 @@ long a, b, c, d;
 }
 
 warn (fmt, a, b, c, d)
-char *fmt;
+const char *fmt;
 long a, b, c, d;
 {
 	fputs ("mk: warn: ", stderr);
@@ -134,7 +134,7 @@ long a, b, c, d;
 #ifndef HAVE_FNMATCH
 /* TODO: provide an actual implementation of fnmatch() */
 fnmatch (pattern, string, flags)
-char *pattern, *string;
+const char *pattern, *string;
 {
 	return 0;
 }
@@ -191,7 +191,7 @@ char *s;
 
 #ifndef HAVE_STRDUP
 char *strdup (s)
-char *s;
+const char *s;
 {
 	size_t len;
 	char *out;
@@ -208,7 +208,8 @@ char *s;
 /* TODO: unfuck this unholy shit-infested junk */
 char *
 realpath (path, resolved)
-char *path, *resolved;
+const char *path;
+char *resolved;
 {
 	if (resolved == NULL)
 		resolved = malloc (PATH_MAX);
@@ -279,9 +280,11 @@ char *path, *resolved;
  */
 char *
 strsep (stringp, delim)
-char **stringp, *delim;
+char **stringp;
+const char *delim;
 {
-	char *s, *spanp, *tok;
+	const char *spanp;
+	char *s, *tok;
 	int c, sc;
 
 	if ((s = *stringp) == NULL)
@@ -311,7 +314,7 @@ FILE *
 fmemopen (buffer, size, mode)
 VOID *buffer;
 size_t size;
-char *mode;
+const char *mode;
 {
 	char *path, template[16];
 	FILE *file;
@@ -335,7 +338,8 @@ char *mode;
 #ifndef HAVE_MEMMOVE
 VOID *
 memmove (dest, src, len)
-VOID *dest, *src;
+VOID *dest;
+const VOID *src;
 size_t len;
 {
 	unsigned char *d, *s;
@@ -360,7 +364,8 @@ size_t len;
 #ifndef HAVE_STRTOL
 long
 strtol (s, endptr, base)
-char *s, **endptr;
+const char *s;
+char **endptr;
 {
 	long x = 0;
 	int d, sign = 1;
