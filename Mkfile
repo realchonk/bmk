@@ -27,11 +27,11 @@ all: mk
 
 ## Remove build artifacts
 clean:
-	rm -f mk compile_flags.txt
+	rm -f mk
 
 ## Remove even more stuff
 distclean: clean
-	rm -f Makefile config.log config.h config.h config.mk
+	rm -f Makefile config.log config.h config.h config.mk compile_flags.txt
 
 ## Install mk into ${PREFIX}
 install: mk mk.1
@@ -42,7 +42,3 @@ install: mk mk.1
 mk: mk.c compats.c mk.h
 	${CC} -o mk.tmp mk.c compats.c ${CFLAGS} ${CPPFLAGS} ${LDFLAGS}
 	mv mk.tmp mk
-
-## Generate compile_flags.txt, for use with clangd
-compile_flags.txt:
-	printf '%s\n' "${CFLAGS}" | tr ' ' '\n' > $@

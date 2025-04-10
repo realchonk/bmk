@@ -641,5 +641,6 @@ sed	-e 's/^-include.*/# &/'	\
 	< Mkfile > Makefile.new
 
 cat config.mk Makefile.new >Makefile
+echo "$CFLAGS" >compile_flags.txt
 
 $clean
