@@ -264,20 +264,15 @@ const char *s, *t;
 	return u;
 }
 
-skip_ws (s)
-char **s;
-{
-	for (; isspace (**s); ++*s);
-	return 0;
-}
-
 char *
 ltrim (s)
-char *s;
+const char *s;
 {
-	skip_ws (&s);
+	for (; isspace (*s); ++s);
 	return (char *)s;
 }
+
+#define skip_ws(s) (*(s) = ltrim (*(s)), 0)
 
 char *
 rtrim (s)
