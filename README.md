@@ -32,3 +32,8 @@ make install
 
 ## TODO
 - automate CI for 2.11BSD and 4.3BSD
+- modernize code base
+  - use const where possible
+  - allow declaring variables at the start of blocks,
+    not just the start of a function
+  - allow void functions
