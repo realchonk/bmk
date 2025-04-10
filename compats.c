@@ -197,7 +197,7 @@ const char *s;
 	char *out;
 
 	len = strlen (s) + 1;
-	out = malloc (len);
+	out = (char *)malloc (len);
 	memcpy (out, s, len);
 
 	return out;
@@ -212,7 +212,7 @@ const char *path;
 char *resolved;
 {
 	if (resolved == NULL)
-		resolved = malloc (PATH_MAX);
+		resolved = (char *)malloc (PATH_MAX);
 
 	if (*path == '/') {
 		/* TODO: this is unsafe and stupid! */
@@ -342,10 +342,8 @@ VOID *dest;
 const VOID *src;
 size_t len;
 {
-	unsigned char *d, *s;
-
-	d = dest;
-	s = src;
+	unsigned char *d = (unsigned char *)dest;
+	const unsigned char *s = (const unsigned char *)src;
 
 	if (d < s) {
 		for (; len > 0; --len)
