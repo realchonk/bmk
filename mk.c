@@ -2326,7 +2326,7 @@ char *s, *t, *help;
 #define MAX_IFSTACK 16
 
 walkifstack (s, n)
-char *s;
+const char *s;
 size_t n;
 {
 	size_t i;
