@@ -1,3 +1,9 @@
+#if __STDC__ || HAVE_VOID_PTR
+#define VOID void
+#else
+#define VOID char
+#endif
+
 #ifndef __dead
 # define __dead
 #endif
@@ -88,12 +94,6 @@ extern void *memmove ();
 
 #ifndef HAVE_LSTAT
 # define lstat(fd, st) (stat ((fd), (st)))
-#endif
-
-#if __STDC__ || HAVE_VOID_PTR
-#define VOID void
-#else
-#define VOID char
 #endif
 
 #ifndef HAVE_STDLIB_H
