@@ -166,7 +166,7 @@ str_t *s;
 
 str_write (s, t, n)
 str_t *s;
-char *t;
+const char *t;
 size_t n;
 {
 	str_reserve (s, n);
@@ -177,13 +177,13 @@ size_t n;
 
 str_puts (s, t)
 str_t *s;
-char *t;
+const char *t;
 {
 	return str_write (s, t, strlen (t));
 }
 
 str_last (s)
-str_t *s;
+const str_t *s;
 {
 	return s->len > 0 ? s->ptr[s->len - 1] : EOF;
 }
@@ -251,7 +251,7 @@ str_t *s;
 
 char *
 xstrcat (s, t)
-char *s, *t;
+const char *s, *t;
 {
 	char *u;
 	size_t len_s, len_t;
@@ -276,7 +276,7 @@ ltrim (s)
 char *s;
 {
 	skip_ws (&s);
-	return s;
+	return (char *)s;
 }
 
 char *
@@ -300,7 +300,7 @@ char *s;
 }
 
 starts_with (s, prefix)
-char *s, *prefix;
+const char *s, *prefix;
 {
 	size_t len_s, len_p;
 
@@ -315,14 +315,14 @@ char *s, *prefix;
 
 /* PATH LOGIC */
 
-static struct path path_null = { FIELD (type, PATH_NULL), FIELD (name, NULL) };
-static struct path path_super = { FIELD (type, PATH_SUPER), FIELD (name, NULL) };
+static const struct path path_null = { FIELD (type, PATH_NULL), FIELD (name, NULL) };
+static const struct path path_super = { FIELD (type, PATH_SUPER), FIELD (name, NULL) };
 static struct path tmppath = { FIELD (type, PATH_NAME), FIELD (name, NULL) };
 
 /* return the number of path components (excl. PATH_NULL). */
 size_t
 path_len (p)
-struct path *p;
+const struct path *p;
 {
 	size_t i;
 
@@ -333,7 +333,7 @@ struct path *p;
 
 struct path *
 path_cpy (old, old_len, new_len)
-struct path *old;
+const struct path *old;
 size_t old_len, new_len;
 {
 	struct path *p;
@@ -347,7 +347,7 @@ size_t old_len, new_len;
 
 struct path *
 path_cat (old, comp)
-struct path *old, *comp;
+const struct path *old, *comp;
 {
 	struct path *p;
 	size_t len;
@@ -378,7 +378,7 @@ struct path *old, *comp;
 
 path_write (s, p)
 str_t *s;
-struct path *p;
+const struct path *p;
 {
 	size_t i;
 
@@ -406,9 +406,9 @@ struct path *p;
 	return 0;
 }
 
-char *
+const char *
 path_to_str (p)
-struct path *p;
+const struct path *p;
 {
 	str_reset (&tmpstr);
 	path_write (&tmpstr, p);
@@ -417,7 +417,7 @@ struct path *p;
 
 char *
 path_basename (p)
-struct path *p;
+const struct path *p;
 {
 	char *s, *t;
 
@@ -429,10 +429,10 @@ struct path *p;
 	return t;
 }
 
-char *
+const char *
 path_cat_str (dir, file)
-struct path *dir;
-char *file;
+const struct path *dir;
+const char *file;
 {
 	str_reset (&tmpstr);
 	path_write (&tmpstr, dir);
@@ -443,7 +443,7 @@ char *file;
 
 struct path *
 parse_path (s)
-char *s;
+const char *s;
 {
 	size_t len = 0, cap = 4;
 	struct path *p;
@@ -475,7 +475,7 @@ char *s;
 
 sc_path_into (out, sc)
 str_t *out;
-struct scope *sc;
+const struct scope *sc;
 {
 	if (sc->parent == NULL) {
 		str_putc (out, '.');
@@ -488,9 +488,9 @@ struct scope *sc;
 	return 0;
 }
 
-char *
+const char *
 sc_path_str (sc)
-struct scope *sc;
+const struct scope *sc;
 {
 	str_reset (&tmpstr);
 	sc_path_into (&tmpstr, sc);
@@ -499,7 +499,7 @@ struct scope *sc;
 
 write_objdir (out, sc)
 str_t *out;
-struct scope *sc;
+const struct scope *sc;
 {
 	if (objdir != NULL) {
 		str_puts (out, objdir);
@@ -526,13 +526,13 @@ struct filetime {
 
 get_mtime (out, sc, dir, name)
 struct filetime *out;
-struct scope *sc;
-struct path *dir;
-char *name;
+const struct scope *sc;
+const struct path *dir;
+const char *name;
 {
-	extern char *path_cat_str ();
+	extern const char *path_cat_str ();
 	struct stat st;
-	char *path;
+	const char *path;
 
 	if (verbose >= 2)
 		printf ("get_mtime('%s'): ", name);
@@ -607,7 +607,7 @@ now ()
 }
 
 tv_cmp (a, b)
-struct timespec *a, *b;
+const struct timespec *a, *b;
 {
 	if (a->tv_sec < b->tv_sec) {
 		return -1;
@@ -646,7 +646,7 @@ struct scope *sc;
 /* MKDIR */
 
 mkdir_p (dir)
-char *dir;
+const char *dir;
 {
 	struct stat st;
 	char *copy;
@@ -681,7 +681,7 @@ char *dir;
 }
 
 sc_mkdir_p (sc)
-struct scope *sc;
+const struct scope *sc;
 {
 	if (objdir == NULL)
 		return 0;
@@ -708,7 +708,7 @@ ismname (ch)
 struct macro *
 find_emacro (sc, name)
 struct scope *sc;
-char *name;
+const char *name;
 {
 	struct macro *m;
 
@@ -726,7 +726,7 @@ char *name;
 struct macro *
 find_macro (sc, name)
 struct scope *sc;
-char *name;
+const char *name;
 {
 	struct macro *m;
 
@@ -750,7 +750,7 @@ char *name;
 struct template *
 find_template (sc, name)
 struct scope *sc;
-char *name;
+const char *name;
 {
 	struct template *tm;
 
@@ -765,7 +765,7 @@ char *name;
 struct file *
 find_file (dir, name)
 struct directory *dir;
-char *name;
+const char *name;
 {
 	struct file *f;
 
@@ -780,7 +780,7 @@ char *name;
 struct scope *
 find_subdir (sc, name)
 struct scope *sc;
-char *name;
+const char *name;
 {
 	struct scope *sub;
 
@@ -870,7 +870,7 @@ struct expand_ctx *ctx;
 
 replace_into (out, s, old, new_str)
 str_t *out;
-char *s, *old, *new_str;
+const char *s, *old, *new_str;
 {
 	size_t len_s, len_old;
 
@@ -889,7 +889,7 @@ char *s, *old, *new_str;
 
 replace_all_into (out, s, old, new_str)
 str_t *out;
-char *s, *old, *new_str;
+const char *s, *old, *new_str;
 {
 	char *t;
 	int x = 0;
@@ -911,9 +911,9 @@ char *s, *old, *new_str;
 
 pr_export (out, sc, prefix, m, ctx)
 str_t *out;
-struct scope *sc;
-struct path *prefix;
-struct macro *m;
+const struct scope *sc;
+const struct path *prefix;
+const struct macro *m;
 struct expand_ctx *ctx;
 {
 	extern expand_macro_into ();
@@ -927,8 +927,8 @@ struct expand_ctx *ctx;
 
 dep_write (out, sc, dep)
 str_t *out;
-struct scope *sc;
-struct dep *dep;
+const struct scope *sc;
+const struct dep *dep;
 {
 	if (dep->obj && objdir != NULL) {
 		write_objdir (out, sc);
@@ -941,8 +941,8 @@ struct dep *dep;
 expand_special_into (out, sc, prefix, name, ctx)
 str_t *out;
 struct scope *sc;
-struct path *prefix;
-char *name;
+const struct path *prefix;
+const char *name;
 struct expand_ctx *ctx;
 {
 	struct scope *sub;
@@ -1043,7 +1043,7 @@ struct expand_ctx *ctx;
 subst2 (out, sc, prefix, s, ctx)
 str_t *out;
 struct scope *sc;
-struct path *prefix;
+const struct path *prefix;
 char **s;
 struct expand_ctx *ctx;
 {
@@ -1305,7 +1305,7 @@ invalid:
 subst (out, sc, prefix, s, ctx)
 str_t *out;
 struct scope *sc;
-struct path *prefix;
+const struct path *prefix;
 char **s;
 struct expand_ctx *ctx;
 {
@@ -1358,7 +1358,7 @@ struct expand_ctx *ctx;
 expand_into (out, sc, prefix, s, ctx)
 str_t *out;
 struct scope *sc;
-struct path *prefix;
+const struct path *prefix;
 char *s;
 struct expand_ctx *ctx;
 {
@@ -1376,9 +1376,9 @@ struct expand_ctx *ctx;
 expand_macro_into (out, sc, prefix, m, name, ctx)
 str_t *out;
 struct scope *sc;
-struct path *prefix;
-struct macro *m;
-char *name;
+const struct path *prefix;
+const struct macro *m;
+const char *name;
 struct expand_ctx *ctx;
 {
 	if (m == NULL)
@@ -1403,9 +1403,9 @@ struct expand_ctx *ctx;
 char *
 expand_macro (sc, prefix, m, name, ctx)
 struct scope *sc;
-struct path *prefix;
-struct macro *m;
-char *name;
+const struct path *prefix;
+const struct macro *m;
+const char *name;
 struct expand_ctx *ctx;
 {
 	str_t tmp;
@@ -1418,7 +1418,7 @@ struct expand_ctx *ctx;
 char *
 expand (sc, prefix, s, ctx)
 struct scope *sc;
-struct path *prefix;
+const struct path *prefix;
 char *s;
 struct expand_ctx *ctx;
 {
@@ -1438,7 +1438,7 @@ struct expand_ctx *ctx;
 char *
 evalcom (sc, dir, cmd)
 struct scope *sc;
-struct path *dir;
+const struct path *dir;
 char *cmd;
 {
 	char *args[4];
@@ -1496,7 +1496,7 @@ char *cmd;
 
 runcom (sc, prefix, cmd, ctx, rule)
 struct scope *sc;
-struct path *prefix;
+const struct path *prefix;
 char *cmd, *rule;
 struct expand_ctx *ctx;
 {
@@ -1563,7 +1563,7 @@ struct expand_ctx *ctx;
 /* EXPRESSION PARSER */
 
 is_truthy (s)
-char *s;
+const char *s;
 {
 	char *endp;
 	long x;
@@ -1577,10 +1577,11 @@ char *s;
 }
 
 e_command (s, cmd, arg)
-char **s, *cmd;
+char **s;
+const char *cmd;
 str_t *arg;
 {
-	char *orig = *s;
+	const char *orig = *s;
 
 	*s += strlen (cmd);
 	skip_ws (s);
@@ -1598,7 +1599,7 @@ str_t *arg;
 
 e_atom (sc, prefix, s, val)
 struct scope *sc;
-struct path *prefix;
+const struct path *prefix;
 char **s;
 str_t *val;
 {
@@ -1639,7 +1640,7 @@ str_t *val;
 
 e_unary (sc, prefix, s, val)
 struct scope *sc;
-struct path *prefix;
+const struct path *prefix;
 char **s;
 str_t *val;
 {
@@ -1672,7 +1673,7 @@ enum {
 
 e_comp (sc, prefix, s)
 struct scope *sc;
-struct path *prefix;
+const struct path *prefix;
 char **s;
 {
 	str_t left, right;
@@ -1759,7 +1760,7 @@ char **s;
 
 e_and (sc, prefix, s)
 struct scope *sc;
-struct path *prefix;
+const struct path *prefix;
 char **s;
 {
 	int x;
@@ -1775,7 +1776,7 @@ char **s;
 
 e_or (sc, prefix, s)
 struct scope *sc;
-struct path *prefix;
+const struct path *prefix;
 char **s;
 {
 	int x;
@@ -1791,7 +1792,7 @@ char **s;
 
 parse_expr (sc, prefix, s)
 struct scope *sc;
-struct path *prefix;
+const struct path *prefix;
 char *s;
 {
 	s = trim (s);
@@ -2013,11 +2014,12 @@ char *s;
 /* .SUBDIRS: cc make sys # comment */
 parse_subdirs (sc, dir, s)
 struct scope *sc;
-struct path *dir;
+const struct path *dir;
 char *s;
 {
 	struct scope *sub;
-	char *subdir, *name, *path;
+	char *subdir, *name;
+	const char *path;
 
 	strip_comment (s);
 
@@ -2157,7 +2159,7 @@ char *s;
 struct rule *
 parse_rule (sc, dir, s, t, help)
 struct scope *sc;
-struct path *dir;
+const struct path *dir;
 char *s, *t, *help;
 {
 	struct inference *inf;
@@ -2255,7 +2257,7 @@ char *s, *t, *help;
 
 parse_assign (sc, dir, s, t, help)
 struct scope *sc;
-struct path *dir;
+const struct path *dir;
 char *s, *t, *help;
 {
 	struct macro *m, *prepend = NULL;
@@ -2412,7 +2414,7 @@ char *s, **name, **value;
 
 do_parse (sc, dir, path, file)
 struct scope *sc;
-struct path *dir;
+const struct path *dir;
 char *path;
 FILE *file;
 {
@@ -2612,7 +2614,7 @@ FILE *file;
 
 parse (sc, dir, path) 
 struct scope *sc;
-struct path *dir;
+const struct path *dir;
 char *path;
 {
 	struct directory *dirx;
@@ -2650,7 +2652,7 @@ char *path;
 
 parse_dir (sc, dir)
 struct scope *sc;
-struct path *dir;
+const struct path *dir;
 {
 	char *path;
 
@@ -2663,7 +2665,7 @@ struct path *dir;
 
 struct scope *
 parse_recursive (dir, makefile)
-struct path *dir;
+const struct path *dir;
 char *makefile;
 {
 	struct path *mfpath, *ppath;
@@ -2672,8 +2674,7 @@ char *makefile;
 
 	tmppath.name = makefile;
 	mfpath = path_cat (dir, &tmppath);
-	path = path_to_str (mfpath);
-	if (access (path, F_OK) != 0) {
+	if (access (path_to_str (mfpath), F_OK) != 0) {
 		sc = NULL;
 		goto ret;
 	}
@@ -2721,7 +2722,7 @@ ret:
 
 struct path *	
 parse_subdir (prefix, sub)
-struct path *prefix;
+const struct path *prefix;
 struct scope *sub;
 {
 	struct path *np;
@@ -2736,7 +2737,7 @@ struct scope *sub;
 
 char *
 replace_suffix (name, sufx)
-char *name, *sufx;
+const char *name, *sufx;
 {
 	char *out, *ext;
 	size_t len_name, len_sufx;
@@ -2758,7 +2759,7 @@ struct file *
 inst_inf (sc, inf, name)
 struct scope *sc;
 struct inference *inf;
-char *name;
+const char *name;
 {
 	struct file *f;
 	struct dep *dep;
@@ -2807,8 +2808,8 @@ struct inference *inf;
 struct inference *
 find_inf (sc, dir, name)
 struct scope *sc;
-struct path *dir;
-char *name;
+const struct path *dir;
+const char *name;
 {
 	extern struct file *try_find ();
 	struct inference *inf;
@@ -2843,8 +2844,8 @@ char *name;
 struct file *
 try_find (sc, dir, name)
 struct scope *sc;
-struct path *dir;
-char *name;
+const struct path *dir;
+const char *name;
 {
 	struct inference *inf;
 	struct filetime ft;
@@ -2895,7 +2896,7 @@ struct file *f;
 build_deps (sc, dhead, prefix, mt, maxt, needs_update)
 struct scope *sc;
 struct dep *dhead;
-struct path *prefix;
+const struct path *prefix;
 struct timespec *mt, *maxt;
 int *needs_update;
 {
@@ -2927,7 +2928,7 @@ build_file (out, sc, name, prefix)
 struct build *out;
 struct scope *sc;
 char *name;
-struct path *prefix;
+const struct path *prefix;
 {
 	extern build_dir ();
 	int needs_update;
@@ -3172,7 +3173,7 @@ struct path *prefix;
 build_dir (out, sc, path, prefix)
 struct build *out;
 struct scope *sc;
-struct path *path, *prefix;
+const struct path *path, *prefix;
 {
 	struct path *new_prefix;
 	struct scope *sub;
@@ -3213,7 +3214,7 @@ struct path *path, *prefix;
 build (out, sc, path)
 struct build *out;
 struct scope *sc;
-struct path *path;
+const struct path *path;
 {
 	return build_dir (out, sc, path, &path_null);
 }
@@ -3238,13 +3239,13 @@ struct scope *sc;
 }
 
 help_files (prefix, sc)
-struct path *prefix;
+const struct path *prefix;
 struct scope *sc;
 {
 	struct path *new_prefix;
 	struct scope *sub;
 	struct file *f;
-	char *p;
+	const char *p;
 	int n;
 
 	p = path_to_str (prefix);
@@ -3284,7 +3285,7 @@ struct scope *sc;
 }
 
 help (prefix, sc)
-struct path *prefix;
+const struct path *prefix;
 struct scope *sc;
 {
 	extern usage ();
@@ -3318,7 +3319,7 @@ struct scope *sc;
 /* DUMP */
 
 print_sc (prefix, sc)
-struct path *prefix;
+const struct path *prefix;
 struct scope *sc;
 {
 	struct path *new_prefix;
@@ -3420,13 +3421,13 @@ usage (uc)
 
 do_V (sc, V)
 struct scope *sc;
-char *V;
+const char *V;
 {
 	size_t len;
 	char *s;
 
 	if (strchr (V, '$') != 0) {
-		s = V;
+		s = strdup (V);
 	} else {
 		len = strlen (V);
 		s = malloc (len + 4);
@@ -3438,6 +3439,7 @@ char *V;
 	}
 
 	puts (expand (sc, &path_null, s, NULL));
+	free (s);
 	return 0;
 }
 
