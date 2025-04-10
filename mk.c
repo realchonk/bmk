@@ -1661,7 +1661,7 @@ str_t *val;
 	return 0;
 }
 
-enum {
+enum compare_type {
 	COMP_EQ,
 	COMP_NE,
 	COMP_LT,
@@ -1679,7 +1679,8 @@ const char **s;
 	const char *sl, *sr;
 	char *el, *er;
 	long il, ir;
-	int cmp, x, icmp;
+	enum compare_type cmp;
+	int x, icmp;
 
 	str_new (&left);
 	e_unary (sc, prefix, s, &left);
