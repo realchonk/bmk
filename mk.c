@@ -1039,7 +1039,7 @@ subst2 (out, sc, prefix, s, ctx)
 str_t *out;
 struct scope *sc;
 const struct path *prefix;
-char **s;
+const char **s;
 struct expand_ctx *ctx;
 {
 	extern char *expand_macro ();
@@ -1047,7 +1047,8 @@ struct expand_ctx *ctx;
 	extern subst ();
 	struct macro *m;
 	struct filetime ft;
-	char *orig = *s, *t, *u, *v, *w;
+	const char *orig = *s, *t;
+	char *u, *v, *w;
 	const char *pattern;
 	str_t name, old_str, new_str;
 	int first;
@@ -1302,11 +1303,11 @@ subst (out, sc, prefix, s, ctx)
 str_t *out;
 struct scope *sc;
 const struct path *prefix;
-char **s;
+const char **s;
 struct expand_ctx *ctx;
 {
 	char buf[3];
-	char *t;
+	const char *t;
 	int ch;
 
 	ch = **s;
@@ -1355,7 +1356,7 @@ expand_into (out, sc, prefix, s, ctx)
 str_t *out;
 struct scope *sc;
 const struct path *prefix;
-char *s;
+const char *s;
 struct expand_ctx *ctx;
 {
 	while (*s != '\0') {
@@ -1573,7 +1574,7 @@ const char *s;
 }
 
 e_command (s, cmd, arg)
-char **s;
+const char **s;
 const char *cmd;
 str_t *arg;
 {
@@ -1596,7 +1597,7 @@ str_t *arg;
 e_atom (sc, prefix, s, val)
 struct scope *sc;
 const struct path *prefix;
-char **s;
+const char **s;
 str_t *val;
 {
 	str_t arg;
@@ -1637,7 +1638,7 @@ str_t *val;
 e_unary (sc, prefix, s, val)
 struct scope *sc;
 const struct path *prefix;
-char **s;
+const char **s;
 str_t *val;
 {
 	skip_ws (s);
@@ -1670,7 +1671,7 @@ enum {
 e_comp (sc, prefix, s)
 struct scope *sc;
 const struct path *prefix;
-char **s;
+const char **s;
 {
 	str_t left, right;
 	const char *sl, *sr;
@@ -1758,7 +1759,7 @@ char **s;
 e_and (sc, prefix, s)
 struct scope *sc;
 const struct path *prefix;
-char **s;
+const char **s;
 {
 	int x;
 
@@ -1774,7 +1775,7 @@ char **s;
 e_or (sc, prefix, s)
 struct scope *sc;
 const struct path *prefix;
-char **s;
+const char **s;
 {
 	int x;
 
@@ -1790,9 +1791,8 @@ char **s;
 parse_expr (sc, prefix, s)
 struct scope *sc;
 const struct path *prefix;
-char *s;
+const char *s;
 {
-	s = trim (s);
 	return e_or (sc, prefix, &s);
 }
 
