@@ -578,6 +578,34 @@ else
 	echo '#undef HAVE_SYS_ERRLIST' >>config.h
 fi
 
+echo 'checking if the C compiler understands void *...' >>config.log
+echo -n 'checking if the C compiler understands void *... '
+cat >conftest.c <<EOF
+#include <stdio.h>
+
+void *
+getptr (ptr)
+void *ptr;
+{
+	return ptr;
+}
+
+int main ()
+{
+	int x = 42;
+	void *p = &x;
+	p = getptr (p);
+	return *(int *)p;
+}
+EOF
+if eval "$try_compile"; then
+	echo yes
+	echo '#define HAVE_VOID_PTR 1' >>config.h
+else
+	echo no
+	echo '#undef HAVE_VOID_PTR' >>config.h
+fi
+
 cat >config.mk <<EOF
 CC = $CC
 CPP = $CPP
