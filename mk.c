@@ -50,7 +50,9 @@
 #include "compats.h"
 #include "mk.h"
 
-#define new(T) ((T *)calloc (1, sizeof (T)))
+#define newa(n, T) ((T *)calloc ((n), sizeof (T)))
+#define new(T) (newa (1, T))
+#define renew(ptr, n, T) ((T *)reallocarray ((ptr), (n), sizeof (T)))
 
 #ifndef MAKEFILE
 # define MAKEFILE "Mkfile"
@@ -130,7 +132,7 @@ str_t *s;
 {
 	s->len = 0;
 	s->cap = 10;
-	s->ptr = malloc (s->cap + 1);
+	s->ptr = newa (s->cap + 1, char);
 	return 0;
 }
 
@@ -140,10 +142,10 @@ size_t n;
 {
 	if (s->cap == 0) {
 		s->cap = n;
-		s->ptr = malloc (s->cap + 1);
+		s->ptr = newa (s->cap + 1, char);
 	} else if ((s->len + n) > s->cap) {
 		for (s->cap *= 2; (s->len + n) > s->cap; s->cap *= 2);
-		s->ptr = realloc (s->ptr, s->cap + 1);
+		s->ptr = renew (s->ptr, s->cap + 1, char);
 	}
 	return 0;
 }
@@ -242,7 +244,7 @@ str_t *s;
 {
 	char *t;
 	s->ptr[s->len] = '\0';
-	t = realloc (s->ptr, s->len + 1);
+	t = renew (s->ptr, s->len + 1, char);
 	memset (s, 0, sizeof (*s));
 	return t;
 }
@@ -258,7 +260,7 @@ const char *s, *t;
 
 	len_s = strlen (s);
 	len_t = strlen (t);
-	u = malloc (len_s + len_t + 1);
+	u = newa (len_s + len_t + 1, char);
 	memcpy (u, s, len_s);
 	memcpy (u + len_s, t, len_t + 1);
 	return u;
@@ -333,7 +335,7 @@ size_t old_len, new_len;
 {
 	struct path *p;
 
-	p = calloc (new_len + 1, sizeof (struct path));
+	p = newa (new_len + 1, struct path);
 	memcpy (p, old, old_len * sizeof (struct path));
 	p[new_len].type = PATH_NULL;
 
@@ -444,7 +446,7 @@ const char *s;
 	struct path *p;
 	const char *t;
 
-	p = calloc (cap + 1, sizeof (struct path));
+	p = newa (cap + 1, struct path);
 
 	while ((t = strsep (&s, "/")) != NULL) {
 		if (*t == '\0' || strcmp (t, ".") == 0)
@@ -452,7 +454,7 @@ const char *s;
 
 		if (len == cap) {
 			cap *= 2;
-			p = reallocarray (p, cap + 1, sizeof (struct path));
+			p = renew (p, cap + 1, struct path);
 		}
 
 		if (strcmp (t, "..") == 0) {
@@ -1944,7 +1946,7 @@ char *name;
 
 	assert (name != NULL);
 
-	p = calloc (2, sizeof (struct path));
+	p = newa (2, struct path);
 	p[0].type = PATH_NAME;
 	p[0].name = name;
 	p[1].type = PATH_NULL;
@@ -2566,7 +2568,7 @@ FILE *file;
 
 			if (len == cap) {
 				cap *= 2;
-				r->code = reallocarray (r->code, cap + 1, sizeof (char *));
+				r->code = renew (r->code, cap + 1, char *);
 			}
 
 			r->code[len++] = strdup (s + 1);
@@ -2586,7 +2588,7 @@ FILE *file;
 
 				len = 0;
 				cap = 1;
-				r->code = calloc (cap + 1, sizeof (char *));
+				r->code = newa (cap + 1, char *);
 				r->code[0] = NULL;
 				break;
 			case '=':
@@ -2747,7 +2749,7 @@ const char *name, *sufx;
 	len_name = ext != NULL ? (size_t)(ext - name) : strlen (name);
 	len_sufx = strlen (sufx);
 
-	out = malloc (len_name + len_sufx + 1);
+	out = newa (len_name + len_sufx + 1, char);
 	memcpy (out, name, len_name);
 	memcpy (out + len_name, sufx, len_sufx);
 	out[len_name + len_sufx] = '\0';
@@ -3431,7 +3433,7 @@ const char *V;
 		s = strdup (V);
 	} else {
 		len = strlen (V);
-		s = malloc (len + 4);
+		s = newa (len + 4, char);
 		s[0] = '$';
 		s[1] = '{';
 		memcpy (s + 2, V, len);
@@ -3504,7 +3506,7 @@ char **argv;
 
 	if (odir != NULL) {
 		mkdir_p (odir);
-		objdir = realpath (odir, malloc (PATH_MAX));
+		objdir = realpath (odir, newa (PATH_MAX, char));
 		if (objdir == NULL)
 			err (1, "realpath()");
 
