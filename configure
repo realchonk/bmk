@@ -109,7 +109,7 @@ rm -f config.h config.mk config.log
 if test "$host_alias"; then
 	if test -z "$build_alias"; then
 		cross_compiling=maybe
-	else
+	elif test "$host_alias" != "$build_alias"; then
 		cross_compiling=yes
 	fi
 fi
