@@ -69,7 +69,11 @@ extern void *memmove ();
 #endif
 
 #ifndef WEXITSTATUS
-# define WEXITSTATUS(ws) (((ws) >> 8) & 0xff)
+# if HAVE_UNION_WAIT
+#  define WEXITSTATUS(ws) ((ws).w_retcode)
+# else
+#  define WEXITSTATUS(ws) (((ws) >> 8) & 0xff)
+# endif
 #endif
 
 #ifndef PATH_MAX

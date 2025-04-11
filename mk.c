@@ -62,6 +62,12 @@
 # define SHELL "sh"
 #endif
 
+#if HAVE_UNION_WAIT
+typedef union wait mk_wait_t;
+#else
+typedef int mk_wait_t;
+#endif
+
 extern int errno;
 
 static const char *cpath, *objdir = NULL;
@@ -1501,7 +1507,8 @@ struct expand_ctx *ctx;
 {
 	char *ecmd, *args[5];
 	pid_t pid;
-	int i = 0, q = 0, ws, ign = 0;
+	mk_wait_t ws;
+	int i = 0, q = 0, ign = 0;
 
 	if (*cmd == '@') {
 		q = 1;
@@ -3253,9 +3260,8 @@ struct scope *sc;
 	int n;
 
 	p = path_to_str (prefix);
-	if (strcmp (p, ".") == 0) {
+	if (strcmp (p, ".") == 0)
 		p = NULL;
-	}
 
 	for (f = sc_dir (sc)->fhead; f != NULL; f = f->next) {
 		if (f->help == NULL)

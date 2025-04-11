@@ -408,6 +408,32 @@ EOF
 	fi
 done
 
+echo 'checking if union wait exists...' >>config.log
+echo -n 'checking if union wait exists... '
+cat >conftest.c <<EOF
+#include "config.h"
+#if HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+#if HAVE_SYS_WAIT_H
+#include <sys/wait.h>
+#endif
+
+int main ()
+{
+	union wait w;
+	wait (&w);
+	return 0;
+}
+EOF
+if eval "$try_compile"; then
+	echo yes
+	echo '#define HAVE_UNION_WAIT 1' >>config.h
+else
+	echo no
+	echo '#undef HAVE_UNION_WAIT' >>config.h
+fi
+
 echo 'checking if struct timespec exists...' >>config.log
 echo -n 'checking if struct timespec exists... '
 cat >conftest.c <<EOF
