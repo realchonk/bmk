@@ -551,7 +551,7 @@ int main ()
 	return 0;
 }
 EOF
-if eval "$try_link" && { ./conftest$$ >>config.log 2>&1; test "$cross_compiling" = 'yes'; }; then
+if eval "$try_link" && { ./conftest$$ >>config.log 2>&1 || test "$cross_compiling" = 'yes'; }; then
 	echo yes
 	echo '#define WORKS_STRSEP 1' >>config.h
 else
