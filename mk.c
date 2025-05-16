@@ -446,7 +446,7 @@ const char *file;
 
 struct path *
 parse_path (s)
-const char *s;
+char *s;
 {
 	size_t len = 0, cap = 4;
 	struct path *p;
@@ -892,7 +892,8 @@ const char *s, *old, *new_str;
 
 replace_all_into (out, s, old, new_str)
 str_t *out;
-const char *s, *old, *new_str;
+char *s;
+const char *old, *new_str;
 {
 	char *t;
 	int x = 0;
@@ -1055,8 +1056,8 @@ struct expand_ctx *ctx;
 	extern subst ();
 	struct macro *m;
 	struct filetime ft;
-	const char *orig = *s, *t;
-	char *u, *v, *w;
+	const char *orig = *s;
+	char *t, *u, *v, *w;
 	const char *pattern;
 	str_t name, old_str, new_str;
 	int first;
