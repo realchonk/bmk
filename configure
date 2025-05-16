@@ -230,7 +230,7 @@ cflags='
 '
 
 if test "$warnings" = 'yes'; then
-	cflags="$cflags -Wall -Wextra -Wno-implicit-int"
+	cflags="$cflags -Wall -Wextra"
 	eval cflags="\"\$cflags \$cflags_$cc_vendor\""
 else
 	cflags="$cflags -w"
