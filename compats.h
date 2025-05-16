@@ -1,7 +1,7 @@
 #if __STDC__ || HAVE_VOID_PTR
-#define VOID void
+# define void_t void
 #else
-#define VOID char
+# define void_t char
 #endif
 
 #ifndef __dead
@@ -9,7 +9,7 @@
 #endif
 
 #ifndef HAVE_REALLOCARRAY
-extern VOID *reallocarray ();
+extern void_t *reallocarray ();
 #endif /* HAVE_REALLOCARRAY */
 
 #ifdef HAVE_ERR_H
@@ -101,8 +101,8 @@ extern void *memmove ();
 #endif
 
 #ifndef HAVE_STDLIB_H
-extern VOID *malloc ();
-extern VOID *calloc ();
-extern VOID *realloc ();
+extern void_t *malloc ();
+extern void_t *calloc ();
+extern void_t *realloc ();
 extern char *getenv ();
 #endif

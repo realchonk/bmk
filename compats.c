@@ -40,15 +40,15 @@
 #endif
 
 #if __STDC__ || HAVE_VOID_PTR
-#define VOID void
+# define void_t void
 #else
-#define VOID char
+# define void_t char
 #endif
 
 #ifndef HAVE_STDLIB_H
-extern VOID *malloc ();
-extern VOID *calloc ();
-extern VOID *realloc ();
+extern void_t *malloc ();
+extern void_t *calloc ();
+extern void_t *realloc ();
 extern char *mktemp ();
 #endif
 
@@ -68,9 +68,9 @@ strerror (err)
 #endif
 
 #ifndef HAVE_REALLOCARRAY
-VOID *
+void_t *
 reallocarray (ptr, num, size)
-VOID *ptr;
+void_t *ptr;
 size_t num, size;
 {
 	size_t nb;
@@ -312,7 +312,7 @@ const char *delim;
 #ifndef HAVE_FMEMOPEN
 FILE *
 fmemopen (buffer, size, mode)
-VOID *buffer;
+void_t *buffer;
 size_t size;
 const char *mode;
 {
@@ -336,10 +336,10 @@ const char *mode;
 #endif
 
 #ifndef HAVE_MEMMOVE
-VOID *
+void_t *
 memmove (dest, src, len)
-VOID *dest;
-const VOID *src;
+void_t *dest;
+const void_t *src;
 size_t len;
 {
 	unsigned char *d = (unsigned char *)dest;
