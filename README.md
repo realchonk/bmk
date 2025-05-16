@@ -36,4 +36,3 @@ make install
   - use const where possible
   - allow declaring variables at the start of blocks,
     not just the start of a function
-  - allow void functions
