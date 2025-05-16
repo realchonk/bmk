@@ -24,7 +24,7 @@ extern __dead void warn ();
 #ifdef HAVE_FNMATCH_H
 # include <fnmatch.h>
 #else
-extern fnmatch ();
+extern int fnmatch ();
 #endif
 
 #ifdef HAVE_LIBGEN_H
