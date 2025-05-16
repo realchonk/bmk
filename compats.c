@@ -96,6 +96,7 @@ size_t num, size;
 
 #ifndef HAVE_ERR_H
 
+__dead void
 errx (eval, fmt, a, b, c, d)
 const char *fmt;
 long a, b, c, d;
@@ -106,6 +107,7 @@ long a, b, c, d;
 	exit (eval);
 }
 
+__dead void
 err (eval, fmt, a, b, c, d)
 const char *fmt;
 long a, b, c, d;
@@ -118,6 +120,7 @@ long a, b, c, d;
 	exit (eval);
 }
 
+void
 warnx (fmt, a, b, c, d)
 const char *fmt;
 long a, b, c, d;
@@ -127,6 +130,7 @@ long a, b, c, d;
 	fputc ('\n', stderr);
 }
 
+void
 warn (fmt, a, b, c, d)
 const char *fmt;
 long a, b, c, d;
