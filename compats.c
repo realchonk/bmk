@@ -133,6 +133,7 @@ long a, b, c, d;
 
 #ifndef HAVE_FNMATCH
 /* TODO: provide an actual implementation of fnmatch() */
+int
 fnmatch (pattern, string, flags)
 const char *pattern, *string;
 {
@@ -190,7 +191,8 @@ char *s;
 #endif
 
 #ifndef HAVE_STRDUP
-char *strdup (s)
+char *
+strdup (s)
 const char *s;
 {
 	size_t len;
