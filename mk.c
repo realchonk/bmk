@@ -40,6 +40,17 @@
 #if HAVE_STDLIB_H
 # include <stdlib.h>
 #endif
+#if HAVE_STDBOOL_H
+# include <stdbool.h>
+#elif (!defined(__STDC_VERSION__) || __STDC_VERSION__ < 202311L) && !__bool_true_false_are_defined
+# if HAVE__BOOL
+#  define bool _Bool
+# else
+#  define bool int
+# endif
+# define true 1
+# define false 0
+#endif
 #include <stdio.h>
 #include <errno.h>
 #include <ctype.h>
@@ -305,7 +316,7 @@ char *s;
 	return ltrim (rtrim (s));
 }
 
-/* TODO: bool */
+bool
 starts_with (s, prefix)
 const char *s, *prefix;
 {
@@ -707,7 +718,7 @@ const struct scope *sc;
 /* MACORS MISC */
 
 /* is macro name */
-/* bool */
+bool
 ismname (ch)
 int ch;
 {
@@ -1577,7 +1588,7 @@ struct expand_ctx *ctx;
 
 /* EXPRESSION PARSER */
 
-/* bool */
+bool
 is_truthy (s)
 const char *s;
 {
@@ -1687,7 +1698,7 @@ enum compare_type {
 	COMP_GE,
 };
 
-/* bool */
+bool
 e_comp (sc, prefix, s)
 struct scope *sc;
 const struct path *prefix;
@@ -1777,7 +1788,7 @@ const char **s;
 	return x;
 }
 
-/* bool */
+bool
 e_and (sc, prefix, s)
 struct scope *sc;
 const struct path *prefix;
@@ -1794,7 +1805,7 @@ const char **s;
 	return x;
 }
 
-/* bool */
+bool
 e_or (sc, prefix, s)
 struct scope *sc;
 const struct path *prefix;
@@ -1811,7 +1822,7 @@ const char **s;
 	return x;
 }
 
-/* bool */
+bool
 parse_expr (sc, prefix, s)
 struct scope *sc;
 const struct path *prefix;
@@ -2122,7 +2133,7 @@ char *s;
 	}
 }
 
-/* bool */
+bool
 try_add_custom (sc, f)
 struct scope *sc;
 struct file *f;
@@ -2135,7 +2146,7 @@ struct file *f;
 	len = strlen (f->name);
 	ch = f->name[len - 1];
 	if (ch != '?' && ch != '!')
-		return 0;
+		return false;
 
 	name = strdup (f->name);
 	name[len - 1] = '\0';
@@ -2153,11 +2164,11 @@ struct file *f;
 	}
 
 	free (name);
-	return 1;
+	return true;
 }
 
 /* TODO: impl .SUFFIXES: */
-/* bool */
+bool
 is_inf (s)
 char *s;
 {
@@ -2346,7 +2357,7 @@ char *s, *t, *help;
 #define IF_HAS 0x02
 #define MAX_IFSTACK 16
 
-/* bool */
+bool
 walkifstack (s, n)
 const char *s;
 size_t n;
@@ -2355,12 +2366,12 @@ size_t n;
 
 	for (i = 0; i < n; ++i) {
 		if (!(s[i] & IF_VAL))
-			return 0;
+			return false;
 	}
-	return 1;
+	return true;
 }
 
-/* bool */
+bool
 is_directive (out, s, name)
 char **out, *s;
 const char *name;
@@ -2368,25 +2379,25 @@ const char *name;
 	size_t len;
 
 	if (*s != '.')
-		return 0;
+		return false;
 	++s;
 
 	skip_ws (&s);
 	len = strlen (name);
 	if (strncmp (s, name, len) != 0)
-		return 0;
+		return false;
 
 	s += len;
 
 	if (*s != '\0' && !isspace (*s))
-		return 0;
+		return false;
 
 	if (out != NULL)
 		*out = trim (s);
-	return 1;
+	return true;
 }
 
-/* bool */
+bool
 is_target (out, s, name)
 char **out, *s;
 const char *name;
@@ -2395,18 +2406,18 @@ const char *name;
 
 	len = strlen (name);
 	if (strncmp (s, name, len) != 0)
-		return 0;
+		return false;
 
 	s += len;
 	skip_ws (&s);
 	if (*s != ':')
-		return 0;
+		return false;
 	++s;
 
 	if (out != NULL)
 		*out = trim (s);
 
-	return 1;
+	return true;
 }
 
 char *
