@@ -45,6 +45,14 @@
 # define void_t char
 #endif
 
+#if !defined(__STDC__) && !defined(HAVE_VOID_FUNC)
+# define void
+#endif
+
+#ifndef __dead
+# define __dead
+#endif
+
 #ifndef HAVE_STDLIB_H
 extern void_t *malloc ();
 extern void_t *calloc ();
