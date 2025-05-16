@@ -281,6 +281,7 @@ inttypes.h
 libgen.h
 limits.h
 memory.h
+stdbool.h
 stdint.h
 stdio.h
 stdlib.h
@@ -655,6 +656,27 @@ if eval "$try_compile"; then
 else
 	echo no
 	echo '#undef HAVE_VOID_FUNC' >>config.h
+fi
+
+echo 'checking if the C compiler understands _Bool...' >>config.log
+echo -n 'checking if the C compiler understands _Bool... '
+cat >conftest.c <<EOF
+_Bool f ()
+{
+	return 1;
+}
+
+int main ()
+{
+	return f () ? 0 : 1;
+}
+EOF
+if eval "$try_compile"; then
+	echo yes
+	echo '#define HAVE__BOOL 1' >>config.h
+else
+	echo no
+	echo '#undef HAVE__BOOL' >>config.h
 fi
 
 echo 'checking if the C compiler understands const...' >>config.log
