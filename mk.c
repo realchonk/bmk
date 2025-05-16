@@ -3350,6 +3350,7 @@ struct scope *sc;
 		help_files (prefix, sc);
 	}
 
+	fprintf (stderr, "\nbmk v%s, send bug reports to <%s>.\n", BMK_VERSION, BMK_EMAIL);
 	return 1;
 }
 
