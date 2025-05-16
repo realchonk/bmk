@@ -280,7 +280,7 @@ const char *s;
 	return (char *)s;
 }
 
-#define skip_ws(s) (*(s) = ltrim (*(s)), 0)
+#define skip_ws(s) (*(s) = ltrim (*(s)))
 
 char *
 rtrim (s)
