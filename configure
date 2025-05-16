@@ -632,6 +632,31 @@ else
 	echo '#undef HAVE_VOID_PTR' >>config.h
 fi
 
+echo 'checking if the C compiler understands void functions...' >>config.log
+echo -n 'checking if the C compiler understands void functions... '
+cat >conftest.c <<EOF
+#include <stdio.h>
+
+void print_int (x)
+int x;
+{
+	printf ("%d\n", x);
+}
+
+int main ()
+{
+	print_int (42);
+	return 0;
+}
+EOF
+if eval "$try_compile"; then
+	echo yes
+	echo '#define HAVE_VOID_FUNC 1' >>config.h
+else
+	echo no
+	echo '#undef HAVE_VOID_FUNC' >>config.h
+fi
+
 echo 'checking if the C compiler understands const...' >>config.log
 echo -n 'checking if the C compiler understands const... '
 cat >conftest.c <<EOF
