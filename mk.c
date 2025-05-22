@@ -1460,19 +1460,41 @@ struct expand_ctx *ctx;
 /* COMMAND EXECUTION */
 
 char *
-evalcom (sc, dir, cmd)
-struct scope *sc;
-const struct path *dir;
-const char *cmd;
+get_shell (sc, dir, ctx)
+struct scope		*sc;
+const struct path	*dir;
+struct expand_ctx	*ctx;
 {
-	char *args[4];
+	struct macro	*m;
+	char		*v;
+
+	m = find_macro (sc, "SHELL");
+	if (m == NULL) {
+		warnx ("BUG: ${SHELL} not found");
+		m = &m_shell;
+	}
+
+	v = expand_macro (sc, dir, m, "SHELL", ctx);
+
+	return v;
+}
+
+char *
+evalcom (sc, dir, cmd)
+struct scope		*sc;
+const struct path	*dir;
+const char		*cmd;
+{
+	char *shell, *args[4];
 	ssize_t i, n;
 	str_t data;
 	pid_t pid;
 	int pipefd[2];
 	char buf[64 + 1];
 
-	args[0] = m_shell.value;
+	shell = get_shell (sc, dir, NULL);
+
+	args[0] = shell;
 	args[1] = "-c";
 	args[2] = expand (sc, dir, cmd, NULL);
 	args[3] = NULL;
@@ -1497,7 +1519,7 @@ const char *cmd;
 		if (chdir (path_to_str (dir)) != 0)
 			err (1, "failed to chdir");
 
-		execvp (m_shell.value, args);
+		execvp (shell, args);
 		err (1, "failed to launch shell");
 	} else {
 		close (pipefd[1]);
@@ -1510,12 +1532,11 @@ const char *cmd;
 		}
 		close (pipefd[0]);
 		wait (NULL);
+		free (shell);
+		free (args[2]);
+		str_chomp (&data);
+		return str_release (&data);
 	}
-
-	free (args[2]);
-	str_chomp (&data);
-
-	return str_release (&data);
 }
 
 int
@@ -1525,7 +1546,7 @@ const struct path *prefix;
 const char *cmd, *rule;
 struct expand_ctx *ctx;
 {
-	char *ecmd, *args[5];
+	char *shell, *ecmd, *args[5];
 	pid_t pid;
 	mk_wait_t ws;
 	int i = 0, q = 0, ign = 0;
@@ -1540,6 +1561,7 @@ struct expand_ctx *ctx;
 		q = 1;
 	}
 
+	shell = get_shell (sc, prefix, ctx);
 	ecmd = expand (sc, prefix, cmd, ctx);
 
 	if (!q) {
@@ -1555,7 +1577,7 @@ struct expand_ctx *ctx;
 	if (pid < 0)
 		err (1, "fork()");
 
-	args[i++] = m_shell.value;
+	args[i++] = shell;
 	args[i++] = ign ? "-c" : "-ec";
 	args[i++] = ecmd;
 	args[i] = NULL;
@@ -1568,9 +1590,10 @@ struct expand_ctx *ctx;
 		if (chdir (path_to_str (prefix)) != 0)
 			err (126, "chdir()");
 
-		execvp (m_shell.value, args);
+		execvp (shell, args);
 		err (127, "exec('%s')", ecmd);
 	} else {
+		free (shell);
 		free (ecmd);
 		if (wait (&ws) != pid) {
 			warn ("wait()");
