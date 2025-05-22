@@ -142,10 +142,9 @@ EOF
 		echo no
 	done
 	if test -z "$CC"; then
-		echo no
 		echo "error: no C compiler found." >>config.log
 		echo "error: no C compiler found." >&2
-		$fail
+		eval "$fail"
 	fi
 	echo "$CC"
 fi
