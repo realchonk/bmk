@@ -162,7 +162,7 @@ eval "$try_link"
 if test $? -ne 0; then
 	echo no
 	echo 'error: compiler cannot produce working binary' >&2
-	$fail
+	eval "$fail"
 fi
 
 if test "$cross_compiling" != 'yes'; then
@@ -174,7 +174,7 @@ if test "$cross_compiling" != 'yes'; then
 	else
 		echo no
 		echo 'error: binary produced by compiler doesnt work' >&2
-		$fail
+		eval "$fail"
 	fi
 fi
 echo yes
@@ -194,7 +194,7 @@ if test -z "$CPP"; then
 	if test -z "$CPP"; then
 		echo no
 		echo 'error: dont know how to run the C preprocessor' >&2
-		$fail
+		eval "$fail"
 	fi
 fi
 echo "$CPP"
