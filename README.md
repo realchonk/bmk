@@ -16,6 +16,8 @@ make
 # Install bmk.
 make install
 ```
+Note: WIP Syntax Highlighting can be enabled by installing [bmk.vim](bmk.vim) into `${VIMRUNTIME}/syntax/bmk.vim`.
+
 ## Packages
 [![Packaging status](https://repology.org/badge/vertical-allrepos/bmk.svg)](https://repology.org/project/bmk/versions)
 
