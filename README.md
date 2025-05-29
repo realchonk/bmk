@@ -16,7 +16,8 @@ make
 # Install bmk.
 make install
 ```
-Note: WIP Syntax Highlighting can be enabled by installing [bmk.vim](bmk.vim) into `${VIMRUNTIME}/syntax/bmk.vim`.
+Note: WIP Syntax Highlighting for Vim and Neovim can be enabled by installing [bmk.vim](bmk.vim) into `${VIMRUNTIME}/syntax/bmk.vim`.
+To enable autodetection for Vim, `${VIMRUNTIME}/filetype.vim` has to be adjusted.
 
 ## Packages
 [![Packaging status](https://repology.org/badge/vertical-allrepos/bmk.svg)](https://repology.org/project/bmk/versions)
