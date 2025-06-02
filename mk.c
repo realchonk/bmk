@@ -1566,8 +1566,8 @@ struct expand_ctx *ctx;
 
 	if (!q) {
 		printf ("[%s%s%s] $ %s\n",
-			path_to_str (prefix),
-			rule != NULL ? "/" : "",
+			prefix[0].type != PATH_NULL ? path_to_str (prefix) : "",
+			prefix[0].type != PATH_NULL && rule != NULL ? "/" : "",
 			rule != NULL ? rule : "",
 			verbose ? ecmd : cmd
 		);
