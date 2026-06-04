@@ -2248,9 +2248,10 @@ char *s, *t, *help;
 	struct rule *r;
 	struct file *f;
 	struct file **seen;
+	struct dep *cdhead, *cdtail;
 	struct dep *dep, *dhead, *dtail;
 	char *u, *v, *p;
-	size_t nseen, cseen;
+	size_t i, nseen, cseen;
 	int flag;
 
 	r = new (struct rule);
@@ -2304,8 +2305,6 @@ char *s, *t, *help;
 		nseen = cseen = 0;
 		v = u;
 		while ((p = strsep (&v, " \t")) != NULL) {
-			struct dep *cdhead, *cdtail;
-			size_t i;
 
 			if (*p == '\0')
 				continue;
