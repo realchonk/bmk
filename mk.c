@@ -2247,8 +2247,10 @@ char *s, *t, *help;
 	struct filetime ft;
 	struct rule *r;
 	struct file *f;
+	struct file **seen;
 	struct dep *dep, *dhead, *dtail;
 	char *u, *v, *p;
+	size_t nseen, cseen;
 	int flag;
 
 	r = new (struct rule);
@@ -2298,17 +2300,31 @@ char *s, *t, *help;
 		sc_dir (sc)->infs = inf;
 		flag = 1;
 	} else {
+		seen = NULL;
+		nseen = cseen = 0;
 		v = u;
 		while ((p = strsep (&v, " \t")) != NULL) {
 			struct dep *cdhead, *cdtail;
+			size_t i;
 
 			if (*p == '\0')
 				continue;
 			/* TODO: check name */
 
+			f = find_file (sc_dir (sc), p);
+
+			/* skip duplicate targets on the same rule line */
+			if (f != NULL) {
+				for (i = 0; i < nseen; ++i) {
+					if (seen[i] == f)
+						break;
+				}
+				if (i != nseen)
+					continue;
+			}
+
 			cdhead = dup_deps (dhead, &cdtail);
 
-			f = find_file (sc_dir (sc), p);
 			if (f == NULL) {
 				get_mtime (&ft, sc, dir, p);
 					
@@ -2326,19 +2342,21 @@ char *s, *t, *help;
 				dir_add_file (sc_dir (sc), f);
 				try_add_custom (sc, f);
 				flag = 1;
-				continue;
+			} else {
+				if (f->help == NULL)
+					f->help = help;
+
+				if (cdhead != NULL)
+					file_add_deps (f, cdhead, cdtail);
 			}
 
-			/* duplicate target on the same rule line: already handled */
-			if (f->rule == r)
-				continue;
-
-			if (f->help == NULL)
-				f->help = help;
-
-			if (cdhead != NULL)
-				file_add_deps (f, cdhead, cdtail);
+			if (nseen == cseen) {
+				cseen = cseen ? cseen * 2 : 4;
+				seen = renew (seen, cseen, struct file *);
+			}
+			seen[nseen++] = f;
 		}
+		free (seen);
 	}
 	free (u);
 	return flag ? r : NULL;
