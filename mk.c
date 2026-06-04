@@ -1995,6 +1995,30 @@ struct path *path;
 }
 
 struct dep *
+dup_deps (src, out_tail)
+struct dep *src;
+struct dep **out_tail;
+{
+	struct dep *head, *tail, *d;
+
+	head = tail = NULL;
+	for (; src != NULL; src = src->next) {
+		d = new_dep (src->path);
+		d->obj = src->obj;
+		if (head != NULL) {
+			d->prev = tail;
+			tail->next = d;
+		} else {
+			head = d;
+		}
+		tail = d;
+	}
+
+	*out_tail = tail;
+	return head;
+}
+
+struct dep *
 new_dep_name (name)
 char *name;
 {
@@ -2252,7 +2276,7 @@ char *s, *t, *help;
 
 	/* parse targets */
 	u = expand (sc, dir, s, NULL);
-	flag = 1;
+	flag = 0;
 	if (is_inf (u)) {
 		p = strchr (u + 1, '.');
 		inf = new (struct inference);
@@ -2272,12 +2296,17 @@ char *s, *t, *help;
 		}
 
 		sc_dir (sc)->infs = inf;
+		flag = 1;
 	} else {
 		v = u;
 		while ((p = strsep (&v, " \t")) != NULL) {
+			struct dep *cdhead, *cdtail;
+
 			if (*p == '\0')
 				continue;
 			/* TODO: check name */
+
+			cdhead = dup_deps (dhead, &cdtail);
 
 			f = find_file (sc_dir (sc), p);
 			if (f == NULL) {
@@ -2287,8 +2316,8 @@ char *s, *t, *help;
 					/* name */ strdup (p),
 					/* rule */ r,
 					/* time */ ft.t,
-					/* dhead*/ dhead,
-					/* dtail*/ dtail,
+					/* dhead*/ cdhead,
+					/* dtail*/ cdtail,
 					/* help */ help,
 					/* inf  */ NULL,
 					/* obj  */ ft.obj
@@ -2296,16 +2325,19 @@ char *s, *t, *help;
 				/* TODO: maybe first do try_add_custom()? */
 				dir_add_file (sc_dir (sc), f);
 				try_add_custom (sc, f);
+				flag = 1;
 				continue;
 			}
 
-			flag = 0;
+			/* duplicate target on the same rule line: already handled */
+			if (f->rule == r)
+				continue;
 
 			if (f->help == NULL)
 				f->help = help;
 
-			if (dhead != NULL)
-				file_add_deps (f, dhead, dtail);
+			if (cdhead != NULL)
+				file_add_deps (f, cdhead, cdtail);
 		}
 	}
 	free (u);
