@@ -2586,7 +2586,7 @@ FILE *file;
 				u = strdup (path_cat_str (dir, t));
 			}
 
-			if (access (t, R_OK) == 0)
+			if (access (u, R_OK) == 0)
 				parse (sc, dir, u);
 
 			sc_dir (sc)->done = 0;
@@ -3370,11 +3370,12 @@ struct scope *sc;
 			continue;
 
 		n = 0;
+		printf ("  ");
 		if (p != NULL) {
 			printf ("%s/", p);
 			n += strlen (p) + 1;
 		}
-		printf ("  %s", f->name);
+		printf ("%s", f->name);
 		n += strlen (f->name);
 		printf ("%-*s- %s\n", n < 28 ? 28 - n : 0, "", f->help);
 	}
