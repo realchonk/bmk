@@ -1,10 +1,10 @@
 .\" Copyright (c) 2025 Benjamin Stürz <benni@stuerz.xyz>
-.Dd January 4, 2025
+.Dd July 21, 2026
 .Dt MK 1
 .Os
 .Sh NAME
 .Nm mk
-.Nd build stuff
+.Nd scope-based build automation tool
 .Sh SYNOPSIS
 .Nm
 .Op Fl hkpsSv
@@ -15,516 +15,706 @@
 .Op Ar target ...
 .Sh DESCRIPTION
 .Nm
-is designed to help you build stuff.
-It is specifically designed for larger projects,
-for which
-.Xr make 1
-is not suitable enough.
-
+is a build automation tool in the spirit of
+.Xr make 1 ,
+designed for larger projects where recursive make or a single giant makefile
+become unmanageable.
+.Pp
+Unlike traditional
+.Xr make 1 ,
+.Nm
+treats targets and prerequisites as
+paths rather than plain strings, and arranges every directory of the source
+tree into a
+.Em scope .
+Scopes form a tree rooted at the top-level directory; subdirectories are
+parsed lazily, only when a target inside them is required.
+This model removes the need for recursive
+.Nm
+invocations while still keeping per-directory state.
+.Pp
 The following options are available:
 .Bl -tag -width indent
+.It Fl C Ar dir
+Change the working directory to
+.Ar dir
+before doing anything else.
+.It Fl f Ar makefile
+Read
+.Ar makefile
+instead of the default makefile.
+Contrary to other implementations, only the last occurrence of this option
+is honored.
 .It Fl h
-Print a help page for the current directory.
-.It Fl hv
-Similar to
-.Fl h ,
-but do so recursively for all subdirectories.
+Print a help page listing the user-visible macros and targets of the current
+directory (those carrying documentation comments), then exit.
+When combined with
+.Fl v ,
+the help page is produced recursively for every subdirectory.
+.It Fl k
+Continue processing after errors are encountered, but only on targets that
+do not depend on the target whose recipe failed.
+This is the opposite of
+.Fl S .
+.It Fl o Ar objdir
+Place generated artifacts into
+.Ar objdir
+and search there for existing artifacts.
+Useful for out-of-tree builds.
+The path is exposed to makefiles through
+.Ev .OBJDIR .
 .It Fl p
-Dump the current directory's makefile.
-.It Fl pv
-Same as
-.Fl p ,
-but do so recursively for all subdirectories.
+Dump the parsed state of the current directory's makefile (macros, targets,
+rules, inference rules, and subdirectories) and exit.
+When combined with
+.Fl v ,
+the dump is produced recursively for every subdirectory.
 .It Fl s
-Do not echo commands, as they are executed.
-Equivalent to specifying '@' before each command in the makefile.
+Do not echo commands before executing them.
+Equivalent to prefixing every command with
+.Sq Ic @ .
+This option overrides
+.Fl v .
 .It Fl S
-stop processing when an erorr is encountered.
+Stop processing as soon as a command returns a non-zero status.
 This is the default behavior and is the opposite of
 .Fl k .
-.It Fl k
-Continue processing after errors are encountered,
-but only on those targets that do not depend on the target whose creating caused the error.
-This options is the opposite of the 
-.Fl S
-option.
-.It Fl v
-Cause
-.Nm
-to print more verbose output.
-This option can be specified multiple times, to increase the verbosity.
-This option is negated by the
-.Fl s
-option.
-.It Fl C Ar dir
-Change the current working directory to
-.Ar dir .
-.It Fl f Ar mk
-Read file
-.Ar mk
-instead of the default makefile.
-Contrary to other implementations, only the last occurence of this option is honored.
-.It Fl o Ar obj
-Put generated artifacts into the
-.Ar obj
-directory.
-.Nm
-will also search for artifacts in this directory.
-This is very useful for out-of-tree builds.
 .It Fl V Ar var
-Print the expanded value of
+Expand
 .Ar var
-to the standard output and exit.
+as if it were written
+.Li ${ Ns Ar var Ns Li }
+and print the result to standard output, then exit.
+If
+.Ar var
+already contains a
+.Ql $
+character it is expanded verbatim instead, allowing arbitrary expressions
+such as
+.Li "${SOURCE:M*.c}" .
+.It Fl v
+Increase verbosity.
+May be specified multiple times.
+At higher levels,
+.Nm
+also descends into subdirectories for
+.Fl h
+and
+.Fl p ,
+and prints extra status while parsing.
 .El
 .Sh DEPENDENCY LINES
-Dependency lines consist of one or more targets,
-and zero or more prerequisites:
-.Bd -ragged -offset ident
+A dependency line consists of one or more targets followed by a colon and
+zero or more prerequisites:
+.Bd -ragged -offset indent
 .Ar target ... : Ns Op Ar prerequisite ...
 .Ed
 .Pp
-This creates a relationship, where the targets
-.Dq depend
-on the prerequisites, and are built from them.
+This declares that each
+.Ar target
+depends on every
+.Ar prerequisite
+and is to be (re)built from them.
 .Pp
-Targets must consist of only characters in
-.Dq [a-zA-Z._-] .
-Dependencies can additionally contain
-.Dq /
-characters, but the resulting paths must be relative,
-and cannot cross directories, that are outside the build.
+Targets and prerequisites are interpreted as paths.
+They must be relative and may not escape the build tree.
 .Sh SHELL COMMANDS
-Each target may have associated with it a series of shell commands,
-normally used to build the target.
-While several dependency lines may name the same target,
-only one of these dependency lines may be followed by shell commands,
-and thus define a complete target rule.
+A dependency line may be followed by a series of indented shell commands
+\(em the target's recipe \(em used to build the target.
+While several dependency lines may name the same target, only one of them
+may carry a recipe.
 .Pp
-If a command line begins with one of the characters,
+If a command line begins with one of the characters
 .Sq Ic @
 or
 .Sq Ic \- ,
 the command is treated specially:
 .Bl -tag -width '@'
 .It Sq Ic @
-causes the command not to be echoed before it is executed.
+Causes the command not to be echoed before it is executed.
 .It Sq Ic \-
-causes any non-zero exit status of the command line to be ignored.
+Causes any non-zero exit status of the command to be ignored.
 .El
 .Pp
-Commands are executed using
+Each command line is executed by
 .Pa /bin/sh
-in
-.Qq set -e
-mode, unless
+with
+.Ic set -e
+in effect, unless
 .Sq Ic \-
-is specified, or the shell is broken (in case of Minix-vmd).
+was given (or the platform shell is known to be broken, as on Minix-vmd).
+A separate shell is spawned for each command line.
 .Sh INFERENCE RULES
-TODO
+An inference rule is a recipe that knows how to produce a file with one
+suffix from a file with another suffix.
+They are written as dependency lines whose target has the form
+.Li . Ns Ar from Ns Li . Ns Ar to ,
+where each of
+.Ar from
+and
+.Ar to
+is a dot-prefixed suffix of at most three characters (for example
+.Li \&.c.o ,
+.Li \&.y.c ,
+.Li \&.l.c ) :
+.Bd -literal -offset indent
+\&.c.o:
+	${CC} ${CFLAGS} -c $< -o $@
+.Ed
+.Pp
+When
+.Nm
+needs a target
+.Pa foo. Ns Ar to
+that has no explicit recipe, it searches the current scope and its
+ancestors for an inference rule whose
+.Ar to
+matches.
+If a source file
+.Pa foo. Ns Ar from
+exists, the inference rule is instantiated:
+a synthetic prerequisite on
+.Pa foo. Ns Ar from
+is added, and the rule's recipe is attached.
+Inference rules may also list their own prerequisites after the colon.
+Unlike
+.Xr make 1 ,
+no
+.Ic .SUFFIXES:
+declaration is required and inference chains may be arbitrarily deep.
+.Pp
+Inside an inference rule's recipe, the special variables
+.Ev .TARGET
+.Pq Sq Ic $@
+and
+.Ev .IMPSRC
+.Pq Sq Ic $<
+refer to the produced target and the inferred source respectively.
 .Sh VARIABLE ASSIGNMENTS
 Variables in
 .Nm
-are much like variables in the shell:
-.Bd -ragged -offset ident
-.Ar name No = Ar value
+\(em also called
+.Em macros
+\(em are assigned with:
+.Bd -ragged -offset indent
+.Ar name No <op> Ar value
 .Ed
 .Pp
-They are also sometimes refered to as
-.Sq macros .
-Variable names can only consist of
-.Dq [a-zA-Z0-9._-]
-and may not start with a digit or hyphen.
-By tradition names consist of all upper-case letters.
-.Pp
-The following operators can be used to define variables:
-.Bl -tag -width Ds
+Macro names consist of the characters
+.Sq [a-zA-Z0-9_.]
+and may not be empty.
+By convention, names use all upper-case letters.
+The following operators are recognised:
+.Bl -tag -width "Ic ??="  -compact
 .It Ic \&=
-Assign the value to the variable.
-Any previous value is overriden.
+Assign the value lazily; it is expanded each time the macro is referenced.
+Any previous value is overridden.
 .It Ic \&:=
-Like
-.Dq \&= ,
-but expand the value, before assigning it.
+Expand the right-hand side immediately, then assign the result.
 .It Ic \&::=
 Currently equivalent to
-.Dq := .
+.Ic := .
 .It Ic \&+=
-Append the value to the current value of the variable.
+Append the value to the current value of the macro.
+A single space is inserted between the previous contents and the appended
+value.
 .It Ic \&?=
-Assign the value, if it is not already defined.
+Assign the value only if the macro is not already defined in any reachable
+scope.
 .It Ic \&??=
-Similar to
-.Dq \&?= ,
-but take environment variables into account.
+Assign the value if the macro is neither already defined nor present in the
+environment.
+This is the typical way to let
+.Ev CC ,
+.Ev CFLAGS ,
+etc. be overridden from the shell.
 .It Ic \&!=
-Perform variable expansion and pass the result to the shell for execution.
-The output of the shell command will be assigned to the variable.
+Expand the right-hand side, pass it to the shell, and assign its standard
+output to the macro.
 .El
 .Pp
-Any whitespace before or after the assigned
+Whitespace surrounding
 .Ar value
-will be removed;
-if the value is being appended,
-a single space is inserted between the previous contents of the variable and the appended value.
+is stripped before assignment.
 .Pp
-Variables are expanded by surrounding the variable name with curly braces
+Macros are expanded by surrounding the name with curly braces
 .Pq Ql {}
-and preceding it with a doller sign
-.Pq Ql $ .
-If the variable name consists of only a single letter,
-the surrounding braces can be omitted.
+preceded by a dollar sign
+.Pq Ql $ :
+.Li ${NAME} .
+If the name is a single character, the braces may be omitted, as in
+.Li $@ .
+A literal dollar sign is written
+.Li $$ .
 .Pp
-Variables can be made visible into subdirectories using the
-.Dq .EXPORT:
-directive.
-.Ss SPECIAL VARIABLES
-The following special variables can be used:
-.Bl -tag -width Ds
-.It Ic $$
-The literal
-.Ic $
-character.
-.It Ic $.
-Relative path to the top-level directory.
-This is the shortform of ${\fB.TOPDIR\fR}.
-.It Ic $@
-The name of the target currently being built.
-This is the shortform of ${\fB.TARGET\fR}.
-.It Ic $<
-The name of the prerequisite from which this target is to be built,
-if a valid inference rule (suffix rule) is in scope.
-This is the shortform of ${\fB.IMPSRC\fR}.
-.It Ic $^
-All source dependencies.
-This is the shortform of ${\fB.ALLSRC\fR}.
-.It Ic $*
-This is the shortform of ${\fB.IMPSRC:T\fR}.
-.It ${\fB.SUBDIRS\fR}
-A list of subdirectories specified by the
-.Ic .SUBDIRS:
-directive.
-.It ${\fB.EXPORTS\fR}
-A list of variables specified by the
+Macros are made visible to foreign subdirectories (those declared with
+.Ic .FOREIGN: )
+through the
 .Ic .EXPORTS:
 directive.
-This is useful for invoking other build systems in foreign subdirectories.
-.It ${\fB.OBJDIR\fR}
-The object directory specified by the
-.Fl o Ar objdir
-option, or the current directory.
-.It ${\fB.MAKEFILES\fR}
-A list of Mkfiles from this directory upwards.
-.It ${\fBSHELL\fR}
-The shell used to interpret the command lines.
-.It ${\fBMAKE\fR}
-The name of the
+.Ss SPECIAL VARIABLES
+The following variables have a built-in meaning:
+.Bl -tag -width "Ev .MAKEFILES" -compact
+.It Ev $$\&
+A literal dollar sign.
+.It Ev \&.TOPDIR
+Relative path from the current directory to the top-level directory.
+Shortcut:
+.Sq Ic $. .
+.It Ev \&.TARGET
+The name of the target currently being built.
+Shortcut:
+.Sq Ic $@ .
+.It Ev \&.IMPSRC
+The inferred source prerequisite of the current target, when an inference
+rule applies.
+Shortcut:
+.Sq Ic $< .
+.It Ev \&.ALLSRC
+All prerequisites of the current target, space-separated.
+Shortcut:
+.Sq Ic $^ .
+.It Ev \&.IMPSRC:T
+The
+.Xr basename 1
+portion of
+.Ev .IMPSRC .
+Shortcut:
+.Sq Ic $* .
+.It Ev \&.OBJDIR
+The object directory selected with
+.Fl o ,
+or the current directory.
+.It Ev \&.SUBDIRS
+The list of subdirectories declared with
+.Ic .SUBDIRS: .
+.It Ev \&.EXPORTS
+The list of macros declared with
+.Ic .EXPORTS: ,
+rendered as
+.Li NAME='value'
+pairs suitable for prefixing a foreign build command.
+.It Ev \&.MAKEFILES
+The list of makefiles seen on the path from the root to the current
+directory.
+.It Ev SHELL
+The shell used to execute recipes
+.Pq default Pa /bin/sh .
+.It Ev MAKE
+The name under which
 .Nm
-command.
-Alias for ${\fB.MAKE\fR}.
-.It ${\fBMAKEFLAGS\fR}
-A list of options given to
+was invoked.
+Also available as
+.Ev .MAKE .
+.It Ev MAKEFLAGS
+A snapshot of the command-line options passed to
 .Nm .
-Alias for ${\fB.MAKEFLAGS\fR}.
+Also available as
+.Ev .MAKEFLAGS .
 .El
 .Ss MODIFIERS
-Modifiers can be applied to a macro expansion using the following syntax:
-.Bd -ragged -offset ident
-${\fBNAME\fR:\fImodfiers\fR...}
+Modifiers transform the expansion of a macro.
+They are chained after the name with
+.Ql : :
+.Bd -ragged -offset indent
+.Li ${ Ns Ar NAME Ns Li : Ns Ar modifier ...
 .Ed
 .Pp
-The following modifiers can be applied to variable expansions:
-.Bl -tag -width Ds
+The following modifiers are available:
+.Bl -tag -width "Ic :Mpattern" -compact
 .It Ic :U
-Make all characters in
-.Ar string
-uppercase.
+Convert every character to upper case.
 .It Ic :L
-Make all characters in
-.Ar string
-lowercase.
+Convert every character to lower case.
 .It Ic :F
-Search for files in either the source directory, or in
-.Ic ${.OBJDIR} .
+For each word, search for a matching file in either the source directory or
+.Ev .OBJDIR .
+Used to locate build artifacts when building out-of-tree.
 .It Ic :E
-Replace each word by it's suffix.
-.Dq suffix
-refers to the file extension.
+Replace each word by its suffix (file extension).
 .It Ic :R
-Replace each word by everything but it's suffix.
+Replace each word by everything but its suffix.
 .It Ic :H
-Replace each word by it's
-.Xr dirname 1
-equivalent.
+Replace each word by its
+.Xr dirname 1 .
 .It Ic :T
-Replace each word by it's
-.Xr basename 1
-equivalent.
-.It Ic :M\fIpattern\fR
-Only retain words that match
+Replace each word by its
+.Xr basename 1 .
+.It Ic :M Ar pattern
+Retain only words matching
 .Ar pattern .
-.It Ic :N\fIpattern\fR
-The opposite of the
-.Ic :M
-modifier.
-.It Ic :J\fIseparator
-Concatenate each word and separate the resulting string by
+.It Ic :N Ar pattern
+The opposite of
+.Ic :M .
+.It Ic :J Ar separator
+Join all words into a single string, separated by
 .Ar separator .
-.It :\fBname\fR=\fBvalue\fR
-Replace every occurence of
-.Ar name
+.It Ic \&: Ns Ar old Ns = Ns Ar new
+Replace every occurrence of
+.Ar old
 with
-.Ar value .
-This has to be the last modifier.
+.Ar new .
+This must be the last modifier in an expansion.
 .El
 .Pp
-These are a few examples for using macro modifiers:
-.Pp
+A worked example:
 .Bd -literal -offset indent
 SOURCE = main.c lex.l parse.y gen.S
 
-# Only retain words that match the glob \fB*.c\fR
+# Only retain words matching the glob *.c
 CFILES = ${SOURCE:M*.c}
 
-# Replace all the file extension \fB.c\fR with \fB.o\fR
+# Replace the .c extension with .o
 COBJS = ${CFILES:.c=.o}
 
 clean:
-	# Use \fB:F\fR to search for the object files in \fB${.OBJDIR}\fR
+	# Use :F to find the objects in ${.OBJDIR}
 	rm -f ${COBJS:F}
 
 print:
-	# Multiple modifiers can be specified:
+	# Multiple modifiers may be combined.
 	@echo ${SOURCE:T:U}
 .Ed
 .Sh INCLUDE STATEMENTS
-Using the
+The
 .Ic include
-statement it is possible to instruct
-.Nm
-to read another file.
-
-Examples:
+statement reads another file at that point:
 .Bd -literal -offset indent
-# Include a file called "templates.mk"
-\fBinclude\fR templates.mk
+# Require templates.mk
+include templates.mk
 
-# Try including a file called "config.mk", if it exists
-\fB-include\fR config.mk
+# Include config.mk only if it exists
+-include config.mk
+# "sinclude" is a synonym for "-include"
+sinclude local.mk
 .Ed
-.Sh SUBDIRECTORIES
-Subdirectories can be declared using the
-.Ic .SUFFIXES:
-directive.
 .Pp
-The handling of subdirectories is done lazily,
-such that the
-.Ic Mkfile
-of the subdirectory is only parsed,
-once a target in that subdirectory tree is needed.
-.Pp
-Examples:
-.Bd -literal -offset indent
-# Declare subdirectories \fIfoo\fR and \fIbar\fR
-\fB.SUBDIRS:\fR foo bar
-
-# Depend on targets from other directories
-foobar: foo/libfoo.a bar/libbar.so ../config.h
-	# \fN$^\fR refers to the list of prerequisites
-	build -o foobar \fB$^\fR
-
-# Print a ", " separated list of subdirectories
-list:
-	@echo "${\fB.SUBDIRS\fR:J, }"
-
-# Depend on the \fIclean\fR target of every subdirectories:
-clean: ${\fB.SUBDIRS\fR:=/clean}
-	# Prefix with ${\fB.OBJDIR\fR}/ for compatibility with the \fB-o\fR option.
-	rm -f ${\fB.OBJDIR\fR}/foobar
-.Ed
-.Ss FOREIGN SUBDIRECTORIES
-TODO
-.Pp
-Foreign subdirectories allow integration with other build systems.
-.Pp
-This is an example of integrating an example Autotools dependency:
-.Bd -literal -offset indent
-# Declare hello as a "foreign directory"
-\fB.FOREIGN\fR: hello
-
-\fBHELLODIR\fR = hello
-
-## External make used for building libhello
-\fBEMAKE\fR ?= make
-
-## C Compiler
-\fBCC\fR ?= cc
-
-## C Compiler Flags
-\fBCFLAGS\fR ?=
-
-## Installation Prefix
-\fBPREFIX\fR ?= /usr/local
-
-## Installation destination directory
-\fBDESTDIR\fR ?=
-
-\fB.EXPORTS\fR: CC CFLAGS DESTDIR
-
-## Build hello/hello and xhello
-all: hello/hello xhello
-
-## Delete build artifacts
-clean: hello/clean
-	rm -f xhello
-
-## Delete all non-source files
-distclean: clean
-	rm -rf ${HELLODIR:F}
-	rm -f ${.OBJDIR}/{hello.tgz,.hello-configure,.hello-extract}
-
-## Install hello and xhello into ${DESTDIR}${PREFIX}
-install: hello/install xhello
-	mkdir -p ${DESTDIR}${PREFIX}/bin
-	cp -f ${.OBJDIR}/xhello ${DESTDIR}${PREFIX}/bin/
-
-## Download hello source
-hello.tgz:
-	ftp -o $@ https://got.stuerz.xyz/download/hello-2.0.tgz
-
-\fR.hello-extract: hello.tgz
-	tar -xzf $< -C ${.OBJDIR}
-	touch $@
-
-\fR.hello-configure: .hello-extract
-	(cd ${HELLODIR:F} && ./configure --prefix=${PREFIX})
-	touch $@
-
-# Check if \fB$<\fR is fresh in hello
-hello?:
-	test -e ${HELLODIR:F}/Makefile
-	${EMAKE} -q -C ${HELLODIR:F} ${.EXPORTS} "$$(echo "$<" | sed 's#./##')"
-
-# Build $< in hello
-hello!: .hello-configure
-	${EMAKE} -C ${HELLODIR:F} ${.EXPORTS} "$$(echo "$<" | sed 's#./##')"
-
-## Build the xhello binary
-xhello: xhello.c hello/libhello.a
-	${CC} -o $@ xhello.c -I${HELLODIR:F} -L${HELLODIR:F} -lhello ${CFLAGS}
-.Ed
+Included paths that are not absolute are resolved relative to the current
+directory's scope.
 .Sh CONDITIONALS
-TODO
-.Sh OTHER DIRECTIVES
-TODO
-.Sh COMMENTS
-Comments begin with a single hash
-.Pq Ql \&#
-character,
-anywhere but in a shell command line, and continue to the end of the line.
-A
-.Pq \&#
-character within a shell command line will be interpreted as a comment by the shell.
-.Ss DOCUMENTATION COMMENTS
-Documentation comments are a special variant of comments,
-which can only appear before rule and macro definitions.
-To define a doc-comment, two hash
-.Pq Ql \&#
-characters must be used.
+Sections of a makefile may be conditionally parsed using the directives
+.Ic .if ,
+.Ic .elif ,
+.Ic .else ,
+and
+.Ic .endif ,
+which may be nested up to 16 levels deep.
+The argument to
+.Ic .if
+and
+.Ic .elif
+is a boolean expression:
+.Bd -ragged -offset indent
+.Li .if Ar expr
+.Ed
+.Pp
+Expressions are composed of:
+.Bl -bullet -compact
+.It
+Quoted string literals,
+.Li "text" .
+.It
+Macro references,
+.Li ${NAME} .
+.It
+The predicates
+.Li defined(NAME)
+(true if the macro
+.Ar NAME
+exists in a reachable scope) and
+.Li target(NAME)
+(true if a target named
+.Ar NAME
+is defined in the current scope).
+.It
+The comparison operators
+.Cm == , != , < , <= , > , >= .
+If both operands look like integers, comparison is numeric; otherwise it is
+lexicographic.
+.It
+The logical operators
+.Cm && ,
+.Cm || ,
+and unary
+.Cm ! .
+.El
 .Pp
 Example:
 .Bd -literal -offset indent
-# This is a doc-comment for macro NAME
-## Define the name of the project
+\&.if ${OS} == "Linux"
+CFLAGS += -DLINUX
+\&.elif defined(DEBUG)
+CFLAGS += -g
+\&.else
+CFLAGS += -O2
+\&.endif
+.Ed
+.Sh SUBDIRECTORIES
+Subdirectories are declared with the
+.Ic .SUBDIRS:
+directive:
+.Bd -literal -offset indent
+\&.SUBDIRS: foo bar
+.Ed
+.Pp
+Each named directory becomes a child scope of the current scope and is
+parsed lazily: its makefile is read only when a target inside that subtree
+is required.
+The list may be referenced as
+.Ev .SUBDIRS ,
+for example to recurse a target into every subdirectory:
+.Bd -literal -offset indent
+clean: ${.SUBDIRS:=/clean}
+.Ed
+.Pp
+A prerequisite may name a path in any subdirectory, in which case
+.Nm
+descends into the corresponding scope automatically:
+.Bd -literal -offset indent
+foobar: foo/libfoo.a bar/libbar.so
+	ar rcs $@ $^
+.Ed
+.Ss FOREIGN SUBDIRECTORIES
+A subdirectory driven by a different build system (GNU make, Autotools,
+BSD make, etc.) is declared with
+.Ic .FOREIGN: :
+.Bd -literal -offset indent
+\&.FOREIGN: hello
+HELLODIR = hello
+EMAKE ?= make
+\&.EXPORTS: CC CFLAGS PREFIX DESTDIR
+.Ed
+.Pp
+Because such subdirectories do not contain a
+.Nm
+makefile, interaction happens entirely through ordinary targets whose
+recipes shell out to the foreign build system.
+Macros listed in
+.Ic .EXPORTS:
+are rendered through
+.Ev .EXPORTS
+as
+.Li NAME='value'
+assignments suitable for passing on the foreign tool's command line:
+.Bd -literal -offset indent
+hello!: .hello-configure
+	${EMAKE} -C ${HELLODIR:F} ${.EXPORTS}
+
+clean: hello/clean
+	rm -f xhello
+.Ed
+.Pp
+Targets suffixed with
+.Sq ?
+or
+.Sq !
+are dispatched to the foreign scope's
+.Em test
+and
+.Em exec
+hooks respectively (see the
+.Sx EXAMPLES
+section for a complete integration).
+.Sh OTHER DIRECTIVES
+.Bl -tag -width ".Ic .endtemplate" -compact
+.It Ic include
+See
+.Sx INCLUDE STATEMENTS .
+.It Ic .template Ar name No ... Ic .endt
+Define a named block of text (terminated by
+.Ic .endt
+or
+.Ic .endtemplate )
+that can be inlined elsewhere via
+.Ic .expand .
+Useful for factoring out boilerplate that recurs across makefiles.
+.It Ic .expand Ar name
+Inline the named template at this point, parsing its body as makefile input.
+.El
+.Sh COMMENTS
+A comment begins with a single hash
+.Pq Ql \&#
+character and runs to the end of the line.
+Inside a recipe, the hash is passed to the shell unchanged.
+.Ss DOCUMENTATION COMMENTS
+A documentation comment is a line beginning with two hashes
+.Pq Ql \&## .
+The text that follows is attached as help text to the next rule or macro
+definition and is shown by
+.Fl h .
+Macro references inside a doc-comment are expanded, so the comment always
+reflects the current value of the variables it mentions.
+.Pp
+Example:
+.Bd -literal -offset indent
+## Name of the project
 NAME = hello
 
-# Macros in doc-comments will be expanded:
 ## Build ${NAME}
 ${NAME}: ${NAME}.c
 	${CC} -o $@ $<
 .Ed
 .Sh SPECIAL TARGETS
-TODO
+.Bl -tag -width ".Ic .SUBDIRS:" -compact
+.It Ic .DEFAULT: Ar target
+Set the default goal that is built when
+.Nm
+is invoked without any
+.Ar target
+arguments.
+.It Ic .SUBDIRS: Ar dir ...
+Declare each
+.Ar dir
+as a child scope of the current directory.
+.It Ic .FOREIGN: Ar dir ...
+Declare each
+.Ar dir
+as a foreign subdirectory driven by an external build system.
+.It Ic .EXPORTS: Ar name ...
+Mark each macro
+.Ar name
+as exported to foreign subdirectories.
+The macros must already be defined when this directive is encountered.
+.It Ic .POSIX:
+Accepted for compatibility; emits a warning reminding the user that
+.Nm
+is not a POSIX make.
+.It Ic .SUFFIXES:
+Accepted for compatibility; emits a warning that
+.Nm
+does not need it.
+.El
 .Sh ENVIRONMENT
-TODO
+.Nm
+does not import the entire environment into the macro namespace.
+Instead, individual macros can opt in to environment lookup via the
+.Ic ??=
+operator.
+.Pp
+The
+.Ev MAKE
+and
+.Ev MAKEFLAGS
+variables are populated by
+.Nm
+itself and propagated to recursive invocations.
 .Sh FILES
-.Bl -tag -width Mkfile -compat
+.Bl -tag -width Mkfile -compact
 .It Pa Mkfile
-default makefile
+Default makefile, unless overridden by
+.Fl f
+or the
+.Fl -with-makefile
+option of
+.Pa configure .
 .El
 .Sh EXAMPLES
-The following is a list of real-world projects built with
-.Nm :
-.Bl -bullet -compact
-.It
+The following is a sketch of a project that integrates an Autotools-driven
+dependency
+.Pa hello
+into a
+.Nm
+build:
+.Bd -literal -offset indent
+\&.FOREIGN: hello
+HELLODIR = hello
+EMAKE ?= make
+CC ?= cc
+CFLAGS ?=
+PREFIX ?= /usr/local
+DESTDIR ?=
+\&.EXPORTS: CC CFLAGS DESTDIR
+
+all: hello/hello xhello
+
+clean: hello/clean
+	rm -f xhello
+
+distclean: clean
+	rm -rf ${HELLODIR:F}
+	rm -f ${.OBJDIR}/{hello.tgz,.hello-configure,.hello-extract}
+
+install: hello/install xhello
+	mkdir -p ${DESTDIR}${PREFIX}/bin
+	cp -f ${.OBJDIR}/xhello ${DESTDIR}${PREFIX}/bin/
+
+hello.tgz:
+	ftp -o $@ https://got.stuerz.xyz/download/hello-2.0.tgz
+
+\&.hello-extract: hello.tgz
+	tar -xzf $< -C ${.OBJDIR}
+	touch $@
+
+\&.hello-configure: .hello-extract
+	(cd ${HELLODIR:F} && ./configure --prefix=${PREFIX})
+	touch $@
+
+# Is $< up to date in hello?
+hello?:
+	test -e ${HELLODIR:F}/Makefile
+	${EMAKE} -q -C ${HELLODIR:F} ${.EXPORTS} "$$(echo "$<" | sed 's#\\./##')"
+
+# Build $< in hello
+hello!: .hello-configure
+	${EMAKE} -C ${HELLODIR:F} ${.EXPORTS} "$$(echo "$<" | sed 's#\\./##')"
+
+xhello: xhello.c hello/libhello.a
+	${CC} -o $@ xhello.c -I${HELLODIR:F} -L${HELLODIR:F} -lhello ${CFLAGS}
+.Ed
+.Pp
+Real-world projects built with
+.Nm
+include
 .Lk https://got.stuerz.xyz/?action=summary&path=desktop.git desktop
-.It
-.Lk https://got.stuerz.xyz/?action=summary&path=286bsd.git 286bsd
-.El
+and
+.Lk https://got.stuerz.xyz/?action=summary&path=286bsd.git 286bsd .
 .Sh EXIT STATUS
 .Ex -std
 .Sh SEE ALSO
 .Xr make 1 ,
 .Xr sh 1
 .Sh STANDARDS
-This implementation of make(1) does not strictly follow any POSIX standard,
-but still most simple Makefiles will work fine.
+This implementation of
+.Xr make 1
+does not strictly follow any POSIX standard, but most simple makefiles work
+unchanged.
 .Sh HISTORY
-Over the the long history of make,
-there have been many (competing) implementations of make(1):
-.Bl -bullet -compact
-.It
-Original make from PWB/UNIX 1.0
-.It
-GNU Make
-.It
-Various versions of BSD Make
-.It
-Plan 9's mk(1)
-.El
+Over the long history of make there have been many competing
+implementations, including the original PWB/UNIX
+.Xr make 1 ,
+GNU Make, the various BSD makes, and Plan 9's
+.Xr mk 1 .
+.Nm
+draws inspiration from those, but replaces string-based targets with a
+scope-based path tree to avoid recursive make.
 .Sh AUTHORS
 .An Benjamin Stürz Aq Mt benni@stuerz.xyz
 .Sh CAVEATS
 .Bl -bullet -compact
 .It
-All paths used as targets/dependencies must be relative.
+All paths used as targets or prerequisites must be relative.
 .It
-The handling of the `?=` and `??=` is different from POSIX.
+The handling of
+.Ic ?=
+and
+.Ic ??=
+differs from POSIX.
 .It
-The way environment and commandline variables are treated is different from POSIX.
+The way environment and command-line variables are treated differs from
+POSIX; in particular, the environment is not imported as macros
+automatically.
 .El
 .Sh BUGS
 .Bl -bullet -compact
 .It
-There exists another project called mk(1).
+There exists another project called
+.Xr mk 1 .
 .It
-Defining recursive dependencies can lead to
-.Nm
-crashing.
+Defining certain forms of recursive dependencies can crash
+.Nm .
 .It
-Specifying multiple targets at once is broken.
+Specifying multiple targets at once on a single dependency line is broken
+in some cases.
 .It
-This manual is unfinished.
-.El
-.Sh TODO
-.Bl -bullet -compact
-.It
-Run commands of the same rule in the same shell, instead of creating a new shell for every command line.
-.It
-Create a detailed list of all features.
-.It
-Create a second implementation in Rust, which will support parallel execution of targets.
-.It
-Create a comparison to other makes.
-.It
-See TODO.md file.
-.It
-Optional prerequisites (continue even if the prerequisite failed).
-.It
-Numbered prerequisite macros.
-.It
-Strip
-.Dq ./
-prefix for
-.Ic $<
-and other variables.
+This manual is still being expanded.
 .El
