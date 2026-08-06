@@ -408,45 +408,83 @@ is a boolean expression:
 .Li .if Ar expr
 .Ed
 .Pp
-Expressions are composed of:
+The grammar is:
+.Bd -literal -offset indent
+expr   =  and ( "||" and )*
+and    =  cmp ( "&&" cmp )*
+cmp    =  unary [ ( "==" | "!=" | "<" | "<=" | ">" | ">=" ) unary ]
+unary  =  "!" unary | atom
+atom   =  "\e"" text "\e""
+       |  defined ( name )
+       |  target  ( name )
+       |  \&`command\&`
+.Ed
+.Pp
+.Bl -tag -width "defined(name)"
+.It atom
+An
+.Em atom
+is one of:
 .Bl -bullet -compact
 .It
-Quoted string literals,
-.Li "text" .
+A double-quoted string
+.Li "\e"text\e"" .
+Inside the string,
+.Li $
+introduces a macro reference or substitution using the same syntax as
+elsewhere in the makefile
+.Pq Li ${NAME} , ${NAME:mod} , etc. ;
+all other characters are taken literally.
 .It
-Macro references,
-.Li ${NAME} .
+.Li defined( Ns Ar name Ns Li )
+evaluates to
+.Li 1
+if the macro
+.Ar name
+exists in any reachable scope,
+.Li 0
+otherwise.
 .It
-The predicates
-.Li defined(NAME)
-(true if the macro
-.Ar NAME
-exists in a reachable scope) and
-.Li target(NAME)
-(true if a target named
-.Ar NAME
-is defined in the current scope).
+.Li target( Ns Ar name Ns Li )
+evaluates to
+.Li 1
+if a target named
+.Ar name
+is defined in the current scope,
+.Li 0
+otherwise.
 .It
-A backtick command substitution,
-.Li \&`command arg1 arg2\&` ,
-which runs the command via the shell and expands to its standard output
-(trailing newlines stripped).
-The command is macro-expanded before execution.
+.Li \&`command\&`
+runs
+.Ar command
+through the shell and expands to its standard output with trailing
+newlines stripped.
+The command string is macro-expanded before execution.
 A non-zero exit status is a fatal error.
-.It
-The comparison operators
-.Cm == , != , < , <= , > , >= .
-If both operands look like integers, comparison is numeric; otherwise it is
-lexicographic.
-.It
-The logical operators
-.Cm && ,
-.Cm || ,
-and unary
-.Cm ! .
+.El
+.It cmp
+If no comparison operator follows the left-hand
+.Em unary ,
+the atom is tested for truthiness directly: the empty string and the
+string
+.Li "0"
+are false; everything else is true.
+When a comparison operator is present, both operands are trimmed of
+surrounding whitespace.
+If both trimmed operands are non-empty and fully numeric
+.Pq acceptable to Xr strtol 3 ,
+comparison is integer; otherwise it is lexicographic.
+.It and / expr
+.Cm &&
+and
+.Cm ||
+are not short-circuit: both operands are always evaluated.
+.Cm !
+may be chained
+.Pq Li !!x No is double negation .
 .El
 .Pp
-Example:
+Examples:
 .Bd -literal -offset indent
 \&.if "${OS}" == "Linux"
 CFLAGS += -DLINUX
@@ -457,6 +495,9 @@ CFLAGS += -O2
 \&.endif
 \&.if `uname -s` == "OpenBSD"
 LDFLAGS += -static
+\&.endif
+\&.if !defined(PREFIX)
+PREFIX = /usr/local
 \&.endif
 .Ed
 .Sh SUBDIRECTORIES
