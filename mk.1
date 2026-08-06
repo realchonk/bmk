@@ -1,5 +1,5 @@
 .\" Copyright (c) 2025 Benjamin Stürz <benni@stuerz.xyz>
-.Dd July 21, 2026
+.Dd August 6, 2026
 .Dt MK 1
 .Os
 .Sh NAME
@@ -261,6 +261,16 @@ A literal dollar sign.
 Relative path from the current directory to the top-level directory.
 Shortcut:
 .Sq Ic $. .
+.It Ev \&.SCOPE
+The path of the current scope relative to the top-level directory
+.Pq e.g. Li \&./foo/bar .
+.It Ev \&.SCOPE:T
+The
+.Xr basename 1
+portion of
+.Ev .SCOPE .
+Shortcut:
+.Sq Ic $& .
 .It Ev \&.TARGET
 The name of the target currently being built.
 Shortcut:

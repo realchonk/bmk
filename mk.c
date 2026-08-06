@@ -817,30 +817,32 @@ const char *name;
 
 #define MAX_EXPAND_DEPTH 64
 struct expand_ctx {
-	char *target;
-	struct dep *deps, *infdeps;
-	struct dep *dep0;
-	int free_target, depth;
+	char		*target;
+	struct scope	*scope;
+	struct dep	*deps;
+	struct dep	*infdeps;
+	int		 free_target;
+	int		 depth;
 };
 
 static struct expand_ctx ctx_null = {
 	FIELD (target, NULL),
+	FIELD (sc, NULL),
 	FIELD (deps, NULL),
 	FIELD (infdeps, NULL),
-	FIELD (dep0, NULL),
 	FIELD (free_target, 0),
 	FIELD (depth, 0),
 };
 
 void
-ectx_init (ctx, target, dep0, deps, infdeps)
-struct expand_ctx *ctx;
-char *target;
-struct dep *dep0;
-struct dep *deps, *infdeps;
+ectx_init (ctx, sc, target, deps, infdeps)
+struct expand_ctx	*ctx;
+struct scope		*sc;
+char			*target;
+struct dep		*deps, *infdeps;
 {
 	ctx->target = target;
-	ctx->dep0 = dep0;
+	ctx->scope = sc;
 	ctx->deps = deps;
 	ctx->infdeps = infdeps;
 	ctx->free_target = 0;
@@ -874,10 +876,9 @@ struct file *f;
 		ctx->free_target = 0;
 	}
 
-	ctx->deps = ctx->dep0 = f->dhead;
+	ctx->scope = sc;
+	ctx->deps  = f->dhead;
 	ctx->infdeps = f->inf != NULL ? f->inf->dhead : NULL;
-	if (ctx->dep0 == NULL && ctx->infdeps != NULL)
-		ctx->dep0 = ctx->infdeps;
 	ctx->depth = 0;
 }
 
@@ -1010,14 +1011,20 @@ struct expand_ctx *ctx;
 		if (ctx->target == NULL)
 			errx (1, "%s: cannot use $@ or ${.TARGET} here", sc_path_str (sc));
 		str_puts (out, ctx->target);
+	} else if (strcmp (name, ".SCOPE") == 0) {
+		sc_path_into (out, ctx->scope);
 	} else if (strcmp (name, ".IMPSRC") == 0) {
 		/*if (ctx->dep0 == NULL)
 			errx (1, "%s: cannot use $< or ${.IMPSRC} here", sc_path_str (sc));*/
 
-		if (ctx->dep0 == NULL)
+		dep = ctx->deps;
+		if (dep == NULL)
+			dep = ctx->infdeps;
+
+		if (dep == NULL)
 			return;
 
-		dep_write (out, sc, ctx->dep0);
+		dep_write (out, sc, dep);
 	} else if (strcmp (name, ".ALLSRC") == 0) {
 		if (ctx->target == NULL)
 			errx (1, "%s: cannot use $^ or ${.ALLSRC} here", sc_path_str (sc));
@@ -1357,6 +1364,10 @@ struct expand_ctx *ctx;
 		break;
 	case '*':
 		t = ".IMPSRC:T}";
+		subst2 (out, sc, prefix, &t, ctx);
+		break;
+	case '&':
+		t = ".SCOPE:T}";
 		subst2 (out, sc, prefix, &t, ctx);
 		break;
 	case '{':
@@ -3116,13 +3127,13 @@ const struct path *prefix;
 	extern int build_dir ();
 	int needs_update;
 	struct scope *sub;
-	struct path *new_prefix, xpath[2];
+	struct path *new_prefix;
 	struct file *f;
 	struct timespec maxt;
 	struct inference *inf;
 	struct expand_ctx ctx;
 	struct filetime ft;
-	struct dep *dep, xdep;
+	struct dep *dep;
 	struct build b;
 	char **s;
 	int ec, rc;
@@ -3255,15 +3266,7 @@ const struct path *prefix;
 	case SC_CUSTOM:
 		/* run the "subdir?" rule, to test if the target needs to be updated */
 		new_prefix = path_cat (prefix, &path_super);
-		if (name != NULL) {
-			xpath[0].type = PATH_NAME;
-			xpath[0].name = name;
-			xpath[1].type = PATH_NULL;
-		}
 
-		xdep.next = xdep.prev = NULL;
-		xdep.path = xpath;
-		xdep.obj = 0;
 
 		/* build ordering deps declared on the bare subdir name */
 		for (dep = sc_custom (sc)->dhead; dep != NULL; dep = dep->next) {
@@ -3291,8 +3294,8 @@ const struct path *prefix;
 
 			ectx_init (
 				/* ctx    */ &ctx, 
-				/* target */ prefix[path_len (prefix) - 1].name,
-				/* dep0   */ name != NULL ? &xdep : NULL,
+				/* sc     */ sc,
+				/* target */ name != NULL ? strdup (name) : name,
 				/* deps   */ f->dhead,
 				/* infdeps*/ NULL
 			);
@@ -3325,8 +3328,8 @@ const struct path *prefix;
 
 		ectx_init (
 			/* ctx    */ &ctx, 
-			/* target */ prefix[path_len (prefix) - 1].name,
-			/* dep0   */ name != NULL ? &xdep : NULL,
+			/* sc     */ sc,
+			/* target */ name != NULL ? strdup (name) : NULL,
 			/* deps   */ f->dhead,
 			/* infdeps*/ NULL
 		);
