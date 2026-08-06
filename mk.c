@@ -1659,6 +1659,7 @@ const char **s;
 str_t *val;
 {
 	str_t arg;
+	char *result;
 	int x;
 
 	skip_ws (s);
@@ -1686,6 +1687,19 @@ str_t *val;
 		e_command (s, "target", &arg);
 		x = find_file (sc_dir (sc), str_get (&arg)) != NULL;
 		goto comm;
+	} else if (**s == '`') {
+		str_new (&arg);
+		for (++*s; **s != '`'; ++*s) {
+			if (**s == '\0')
+				errx (1, "%s:%d: unterminated backtick expression",
+				    cpath, cline);
+			str_putc (&arg, **s);
+		}
+		++*s;
+		result = evalcom (sc, prefix, str_get (&arg));
+		str_puts (val, result);
+		str_free (&arg);
+		free (result);
 	} else {
 		errx (1, "%s:%d: invalid expression: '%s'", cpath, cline, *s);
 	}

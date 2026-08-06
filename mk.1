@@ -427,6 +427,13 @@ exists in a reachable scope) and
 .Ar NAME
 is defined in the current scope).
 .It
+A backtick command substitution,
+.Li \&`command arg1 arg2\&` ,
+which runs the command via the shell and expands to its standard output
+(trailing newlines stripped).
+The command is macro-expanded before execution.
+A non-zero exit status is a fatal error.
+.It
 The comparison operators
 .Cm == , != , < , <= , > , >= .
 If both operands look like integers, comparison is numeric; otherwise it is
@@ -447,6 +454,9 @@ CFLAGS += -DLINUX
 CFLAGS += -g
 \&.else
 CFLAGS += -O2
+\&.endif
+\&.if `uname -s` == "OpenBSD"
+LDFLAGS += -static
 \&.endif
 .Ed
 .Sh SUBDIRECTORIES
