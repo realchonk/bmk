@@ -2660,11 +2660,17 @@ FILE *file;
 			if (run)
 				warnx ("%s:%d: this make doesn't require .SUFFIXES", path, cline);
 		} else if (is_target (&t, s, ".SUBDIRS")) {
-			if (run)
-				parse_subdirs (sc, dir, t);
+			if (run) {
+				u = expand (sc, dir, t, NULL);
+				parse_subdirs (sc, dir, u);
+				free (u);
+			}
 		} else if (is_target (&t, s, ".FOREIGN")) {
-			if (run)
-				parse_foreign (sc, t);
+			if (run) {
+				u = expand (sc, dir, t, NULL);
+				parse_foreign (sc, u);
+				free (u);
+			}
 		} else if (is_target (&t, s, ".EXPORTS")) {
 			if (run)
 				parse_exports (sc, t);

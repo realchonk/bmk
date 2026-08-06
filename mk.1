@@ -457,6 +457,10 @@ directive:
 \&.SUBDIRS: foo bar
 .Ed
 .Pp
+Macro references in the directory list are expanded before the list is
+processed, so
+.Ql .SUBDIRS: ${SUBDIRS}
+is valid.
 Each named directory becomes a child scope of the current scope and is
 parsed lazily: its makefile is read only when a target inside that subtree
 is required.
@@ -478,6 +482,12 @@ foobar: foo/libfoo.a bar/libbar.so
 A subdirectory driven by a different build system (GNU make, Autotools,
 BSD make, etc.) is declared with
 .Ic .FOREIGN: :
+.Bd -literal -offset indent
+\&.FOREIGN: hello
+.Ed
+.Pp
+Macro references in the directory list are expanded before the list is
+processed.
 .Bd -literal -offset indent
 \&.FOREIGN: hello
 HELLODIR = hello
@@ -566,10 +576,16 @@ arguments.
 Declare each
 .Ar dir
 as a child scope of the current directory.
+Macro references in
+.Ar dir
+are expanded.
 .It Ic .FOREIGN: Ar dir ...
 Declare each
 .Ar dir
 as a foreign subdirectory driven by an external build system.
+Macro references in
+.Ar dir
+are expanded.
 .It Ic .EXPORTS: Ar name ...
 Mark each macro
 .Ar name
