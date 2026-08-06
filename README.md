@@ -39,8 +39,8 @@ To enable autodetection for Vim, `${VIMRUNTIME}/filetype.vim` has to be adjusted
 - XENIX 2.3.4
 
 ## Projects using bmk(1)
-- https://got.stuerz.xyz/?action=summary&path=286bsd.git
-- https://got.stuerz.xyz/?action=summary&path=desktop.git
+- https://github.com/realchonk/desktop
+- https://github.com/realchonk/286bsd (uses outdated version of bmk)
 
 ## TODO
 - automate CI for 2.11BSD and 4.3BSD
