@@ -481,15 +481,14 @@ foobar: foo/libfoo.a bar/libbar.so
 .Pp
 Subdirectories referenced as prerequisites do not need to be listed in
 .Ic .SUBDIRS: .
-If the named directory exists on the filesystem but is not declared,
+If the directory exists on the filesystem but is not declared,
 .Nm
-creates an implicit scope for it and reads its makefile (if present)
-on demand.
-Declaring a directory in
-.Ic .SUBDIRS:
-is only required when it must appear in
-.Ev \&.SUBDIRS
-or be built as a standalone target.
+resolves the file against the real filesystem directly: it checks
+that the file exists and uses its modification time, but does not
+read the subdirectory's makefile and does not apply any build rules.
+To allow files in a subdirectory to be built rather than only read,
+the subdirectory must be declared with
+.Ic .SUBDIRS: .
 .Ss FOREIGN SUBDIRECTORIES
 A subdirectory driven by a different build system (GNU make, Autotools,
 BSD make, etc.) is declared with

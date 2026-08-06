@@ -3293,8 +3293,11 @@ struct build *out;
 struct scope *sc;
 const struct path *path, *prefix;
 {
-	struct path *new_prefix;
+	struct path *new_prefix, *full_path, *tmp;
 	struct scope *sub;
+	struct stat st;
+	struct timespec mt;
+	const struct path *p;
 	int ec;
 
 	switch (path[0].type) {
@@ -3319,12 +3322,34 @@ const struct path *path, *prefix;
 
 		sub = find_subdir (sc, path[0].name);
 		if (sub == NULL) {
+			/*
+			 * Undeclared subdirectory: treat the dependency as a
+			 * plain source file.  Assemble the full path, stat it,
+			 * and return its mtime.  No Mkfile is read and no rules
+			 * are applied.
+			 */
 			if (access (path_to_str (new_prefix), F_OK) != 0)
 				errx (1, "%s: invalid subdir: %s",
 				    sc_path_str (sc), path[0].name);
-			sub = new_subdir (sc, path[0].name);
-			sub->type = SC_DIR;
-			sub->makefile = MAKEFILE;
+
+			full_path = new_prefix;
+			for (p = path + 1; p->type != PATH_NULL; ++p) {
+				tmp = path_cat (full_path, p);
+				if (full_path != new_prefix)
+					free (full_path);
+				full_path = tmp;
+			}
+
+			if (lstat (path_to_str (full_path), &st) != 0)
+				errx (1, "%s: no such file: %s",
+				    sc_path_str (sc), path[0].name);
+			stat_get_mtime (mt, st);
+			build_init (out, mt, NULL, 0);
+
+			if (full_path != new_prefix)
+				free (full_path);
+			free (new_prefix);
+			return 0;
 		}
 
 		ec = build_dir (out, sub, path + 1, new_prefix);
