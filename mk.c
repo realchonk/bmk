@@ -2144,6 +2144,8 @@ char *s;
 		cs = new (struct custom);
 		cs->test = NULL;
 		cs->exec = NULL;
+		cs->dhead = NULL;
+		cs->dtail = NULL;
 		sub->inner.custom = cs;
 	}
 }
@@ -2211,6 +2213,38 @@ struct file *f;
 	}
 
 	free (name);
+	return true;
+}
+
+/*
+ * If 'name' is the bare name of an SC_CUSTOM subdir, append 'dhead..dtail'
+ * to its ordering dep list and return true.  The rule (if any) must be
+ * empty; if the caller supplied commands, we error out.
+ */
+bool
+try_add_custom_deps (sc, name, dhead, dtail)
+struct scope *sc;
+const char *name;
+struct dep *dhead, *dtail;
+{
+	struct scope *sub;
+	struct custom *cs;
+
+	sub = find_subdir (sc, name);
+	if (sub == NULL || sub->type != SC_CUSTOM)
+		return false;
+
+	if (dhead == NULL)
+		return true;
+
+	cs = sc_custom (sub);
+	if (cs->dhead != NULL) {
+		dhead->prev = cs->dtail;
+		cs->dtail->next = dhead;
+	} else {
+		cs->dhead = dhead;
+	}
+	cs->dtail = dtail;
 	return true;
 }
 
@@ -2323,6 +2357,11 @@ char *s, *t, *help;
 			}
 
 			cdhead = dup_deps (dhead, &cdtail);
+
+			if (f == NULL && try_add_custom_deps (sc, p, cdhead, cdtail)) {
+				flag = 1;
+				continue;
+			}
 
 			if (f == NULL) {
 				get_mtime (&ft, sc, dir, p);
@@ -3198,6 +3237,14 @@ const struct path *prefix;
 		xdep.next = xdep.prev = NULL;
 		xdep.path = xpath;
 		xdep.obj = 0;
+
+		/* build ordering deps declared on the bare subdir name */
+		for (dep = sc_custom (sc)->dhead; dep != NULL; dep = dep->next) {
+			if (build_dir (&b, sc->parent, dep->path, new_prefix) != 0) {
+				free (new_prefix);
+				return 1;
+			}
+		}
 
 		f = sc_custom (sc)->test;
 		if (f != NULL) {

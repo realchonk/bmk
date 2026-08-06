@@ -47,6 +47,7 @@ struct directory {
 
 struct custom {
 	struct file *test, *exec;
+	struct dep *dhead, *dtail; /* ordering deps (bare name: target) */
 };
 
 struct dep {

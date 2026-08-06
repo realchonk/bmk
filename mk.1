@@ -536,6 +536,27 @@ and
 hooks respectively (see the
 .Sx EXAMPLES
 section for a complete integration).
+.Pp
+A dependency line whose targets are bare foreign subdirectory names
+(without
+.Sq ?
+or
+.Sq ! )
+declares build ordering without supplying a recipe.
+The named prerequisites are built before either hook of the foreign
+subdirectory runs.
+This is useful when one foreign subdirectory depends on another:
+.Bd -literal -offset indent
+\&.FOREIGN: liba libb
+
+libb: liba
+
+liba!:
+	${MAKE} -C liba ${<}
+
+libb!:
+	${MAKE} -C libb ${<}
+.Ed
 .Sh OTHER DIRECTIVES
 .Bl -tag -width ".Ic .endtemplate" -compact
 .It Ic include
