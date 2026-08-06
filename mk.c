@@ -1489,6 +1489,7 @@ const char		*cmd;
 	ssize_t i, n;
 	str_t data;
 	pid_t pid;
+	mk_wait_t ws;
 	int pipefd[2];
 	char buf[64 + 1];
 
@@ -1531,9 +1532,12 @@ const char		*cmd;
 				str_putc (&data, buf[i]);
 		}
 		close (pipefd[0]);
-		wait (NULL);
+		if (wait (&ws) != pid)
+			err (1, "wait()");
 		free (shell);
 		free (args[2]);
+		if (!WIFEXITED (ws) || WEXITSTATUS (ws) != 0)
+			errx (1, "%s: command failed: %s", cpath, cmd);
 		str_chomp (&data);
 		return str_release (&data);
 	}
