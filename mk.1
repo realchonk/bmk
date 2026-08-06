@@ -478,6 +478,18 @@ descends into the corresponding scope automatically:
 foobar: foo/libfoo.a bar/libbar.so
 	ar rcs $@ $^
 .Ed
+.Pp
+Subdirectories referenced as prerequisites do not need to be listed in
+.Ic .SUBDIRS: .
+If the named directory exists on the filesystem but is not declared,
+.Nm
+creates an implicit scope for it and reads its makefile (if present)
+on demand.
+Declaring a directory in
+.Ic .SUBDIRS:
+is only required when it must appear in
+.Ev \&.SUBDIRS
+or be built as a standalone target.
 .Ss FOREIGN SUBDIRECTORIES
 A subdirectory driven by a different build system (GNU make, Autotools,
 BSD make, etc.) is declared with

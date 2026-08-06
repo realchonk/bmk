@@ -3318,8 +3318,14 @@ const struct path *path, *prefix;
 		new_prefix = path_cat (prefix, &path[0]);
 
 		sub = find_subdir (sc, path[0].name);
-		if (sub == NULL)
-			errx (1, "%s: invalid subdir: %s", sc_path_str (sc), path[0].name);
+		if (sub == NULL) {
+			if (access (path_to_str (new_prefix), F_OK) != 0)
+				errx (1, "%s: invalid subdir: %s",
+				    sc_path_str (sc), path[0].name);
+			sub = new_subdir (sc, path[0].name);
+			sub->type = SC_DIR;
+			sub->makefile = MAKEFILE;
+		}
 
 		ec = build_dir (out, sub, path + 1, new_prefix);
 		free (new_prefix);
