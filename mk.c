@@ -1658,13 +1658,22 @@ const struct path *prefix;
 const char **s;
 str_t *val;
 {
+	extern bool e_or ();
 	str_t arg;
 	char *result;
 	int x;
 
 	skip_ws (s);
 
-	if (**s == '"') {
+	if (**s == '(') {
+		++*s;
+		x = e_or (sc, prefix, s);
+		skip_ws (s);
+		if (**s != ')')
+			errx (1, "%s:%d: expected ')'", cpath, cline);
+		++*s;
+		str_putc (val, x ? '1' : '0');
+	} else if (**s == '"') {
 		++*s;
 
 		while (**s != '"') {

@@ -418,6 +418,7 @@ atom   =  "\e"" text "\e""
        |  defined ( name )
        |  target  ( name )
        |  \&`command\&`
+       |  ( expr )
 .Ed
 .Pp
 .Bl -tag -width "defined(name)"
@@ -461,6 +462,18 @@ through the shell and expands to its standard output with trailing
 newlines stripped.
 The command string is macro-expanded before execution.
 A non-zero exit status is a fatal error.
+.It
+.Li ( Ns Ar expr Ns Li )
+evaluates
+.Ar expr
+as a sub-expression and produces
+.Li 1
+or
+.Li 0 .
+Sub-expressions may be nested to any depth and may be prefixed with
+.Cm !
+as in
+.Li !( Ns Ar expr Ns Li ) .
 .El
 .It cmp
 If no comparison operator follows the left-hand
@@ -498,6 +511,9 @@ LDFLAGS += -static
 \&.endif
 \&.if !defined(PREFIX)
 PREFIX = /usr/local
+\&.endif
+\&.if (`uname -s` == "Linux" || `uname -s` == "FreeBSD") && defined(CC)
+CFLAGS += -fPIC
 \&.endif
 .Ed
 .Sh SUBDIRECTORIES
