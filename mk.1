@@ -441,7 +441,7 @@ and unary
 .Pp
 Example:
 .Bd -literal -offset indent
-\&.if ${OS} == "Linux"
+\&.if "${OS}" == "Linux"
 CFLAGS += -DLINUX
 \&.elif defined(DEBUG)
 CFLAGS += -g
