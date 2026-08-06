@@ -596,7 +596,7 @@ as
 assignments suitable for passing on the foreign tool's command line:
 .Bd -literal -offset indent
 hello!: .hello-configure
-	${EMAKE} -C ${HELLODIR:F} ${.EXPORTS}
+	${EMAKE} -C ${HELLODIR:F} ${.EXPORTS} $@
 
 clean: hello/clean
 	rm -f xhello
@@ -629,10 +629,10 @@ This is useful when one foreign subdirectory depends on another:
 libb: liba
 
 liba!:
-	${MAKE} -C liba ${<}
+	${MAKE} -C liba $@
 
 libb!:
-	${MAKE} -C libb ${<}
+	${MAKE} -C libb $@
 .Ed
 .Sh OTHER DIRECTIVES
 .Bl -tag -width ".Ic .endtemplate" -compact
@@ -774,14 +774,14 @@ hello.tgz:
 	(cd ${HELLODIR:F} && ./configure --prefix=${PREFIX})
 	touch $@
 
-# Is $< up to date in hello?
+# Is $@ up to date in hello?
 hello?:
 	test -e ${HELLODIR:F}/Makefile
-	${EMAKE} -q -C ${HELLODIR:F} ${.EXPORTS} "$$(echo "$<" | sed 's#\\./##')"
+	${EMAKE} -q -C ${HELLODIR:F} ${.EXPORTS} $@
 
-# Build $< in hello
+# Build $@ in hello
 hello!: .hello-configure
-	${EMAKE} -C ${HELLODIR:F} ${.EXPORTS} "$$(echo "$<" | sed 's#\\./##')"
+	${EMAKE} -C $& ${.EXPORTS} $@
 
 xhello: xhello.c hello/libhello.a
 	${CC} -o $@ xhello.c -I${HELLODIR:F} -L${HELLODIR:F} -lhello ${CFLAGS}
@@ -811,7 +811,7 @@ GNU Make, the various BSD makes, and Plan 9's
 .Xr mk 1 .
 .Nm
 draws inspiration from those, but replaces string-based targets with a
-scope-based path tree to avoid recursive make.
+scope-based path tree, in order to avoid the common (but suboptimal) recursive make paradigm.
 .Sh AUTHORS
 .An Benjamin Stürz Aq Mt benni@stuerz.xyz
 .Sh CAVEATS
