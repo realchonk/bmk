@@ -46,9 +46,17 @@ struct directory {
 	int done;
 };
 
+struct cbuilt {
+	struct cbuilt *next;
+	char *name;
+	struct timespec t;
+	int obj;
+};
+
 struct custom {
 	struct file *test, *exec;
 	struct dep *dhead, *dtail; /* ordering deps (bare name: target) */
+	struct cbuilt *built; /* targets already built this run */
 };
 
 struct dep {
@@ -66,6 +74,7 @@ struct file {
 	struct timespec mtime;
 	char *help; /* optional */
 	int obj, err;
+	int built;
 };
 
 struct inference {

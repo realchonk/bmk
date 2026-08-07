@@ -2153,6 +2153,23 @@ struct dep *dep;
 	file_add_deps (file, dep, dep);
 }
 
+void
+custom_remember (sc, name, t, obj)
+struct scope *sc;
+const char *name;
+struct timespec t;
+int obj;
+{
+	struct cbuilt *b;
+
+	b = new (struct cbuilt);
+	b->name = strdup (name != NULL ? name : "");
+	b->t = t;
+	b->obj = obj;
+	b->next = sc_custom (sc)->built;
+	sc_custom (sc)->built = b;
+}
+
 char *
 strip_comment (s)
 char *s;
@@ -2631,6 +2648,11 @@ char *s, **name, **value;
 			}
 			break;
 		case ':':
+			if (i[1] == '=' || (i[1] == ':' && i[2] == '='))
+				break;
+			*name = s;
+			*value = i + 1;
+			return i;
 		case '=':
 			*name = s;
 			*value = i + 1;
@@ -3175,7 +3197,9 @@ const struct path *prefix;
 	struct expand_ctx ctx;
 	struct filetime ft;
 	struct dep *dep;
+	struct cbuilt *cb;
 	struct build b;
+	const char *bname;
 	char **s;
 	int ec, rc;
 
@@ -3230,6 +3254,12 @@ const struct path *prefix;
 			if (f == NULL)
 				errx (1, "%s: nothing to build", sc_path_str (sc));
 		}
+
+		if (f->built) {
+			build_init (out, f->mtime, f, f->obj);
+			return f->err;
+		}
+		f->built = 1;
 
 		/* if this file has no rule, try to find an inference rule */
 		if (f->rule == NULL || *f->rule->code == NULL) {
@@ -3305,6 +3335,14 @@ const struct path *prefix;
 		build_init (out, f->mtime, f, f->obj);
 		return 0;
 	case SC_CUSTOM:
+		bname = name != NULL ? name : "";
+		for (cb = sc_custom (sc)->built; cb != NULL; cb = cb->next) {
+			if (strcmp (cb->name, bname) == 0) {
+				build_init (out, cb->t, NULL, cb->obj);
+				return 0;
+			}
+		}
+
 		/* run the "subdir?" rule, to test if the target needs to be updated */
 		new_prefix = path_cat (prefix, &path_super);
 
@@ -3358,6 +3396,7 @@ const struct path *prefix;
 			} else {
 				build_init (out, time_zero, NULL, 0);
 			}
+			custom_remember (sc, name, out->t, out->obj);
 			return 0;
 		}
 
@@ -3399,6 +3438,7 @@ const struct path *prefix;
 		} else {
 			build_init (out, now (), NULL, 0);
 		}
+		custom_remember (sc, name, out->t, out->obj);
 		return 0;
 	}
 	
@@ -3414,9 +3454,10 @@ const struct path *path, *prefix;
 	struct path *new_prefix, *full_path, *tmp;
 	struct scope *sub;
 	struct stat st;
-	struct timespec mt;
+	struct timespec mt, pmt, pmaxt;
 	const struct path *p;
-	int ec;
+	struct file *pf;
+	int ec, pnu;
 
 	switch (path[0].type) {
 	case PATH_SUPER:
@@ -3435,6 +3476,15 @@ const struct path *path, *prefix;
 
 		if (sc_dir (sc) == NULL)
 			parse_dir (sc, prefix);
+
+		pf = find_file (sc_dir (sc), path_to_str (path));
+		if (pf != NULL && pf->dhead != NULL) {
+			pmt = pf->mtime;
+			pmaxt = pf->mtime;
+			pnu = 0;
+			if (build_deps (sc, pf->dhead, prefix, &pmt, &pmaxt, &pnu) != 0)
+				return 1;
+		}
 
 		new_prefix = path_cat (prefix, &path[0]);
 
