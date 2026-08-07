@@ -9,6 +9,7 @@ tasks:
       cd bmk
       ./configure
       make
+      make check
       doas make install
       make distclean
   - build-tcc: |
@@ -21,7 +22,6 @@ tasks:
       cd bmk
       ./configure
       mk
-      mk check
       doas mk install
   - build-211bsd: |
       cd bmk
