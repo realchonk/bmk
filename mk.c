@@ -548,7 +548,6 @@ const struct scope *sc;
 const struct path *dir;
 const char *name;
 {
-	extern const char *path_cat_str ();
 	struct stat st;
 	const char *path;
 
@@ -604,7 +603,7 @@ now ()
 	struct timeval tv;
 	gettimeofday (&tv, NULL);
 	t.tv_sec = tv.tv_sec;
-	t.tv_nsec = tv.tv_sec;
+	t.tv_nsec = tv.tv_usec * 1000;
 #endif
 
 #if HAVE_FTIME && !defined(HAVE_CLOCK_GETTIME) && !defined(HAVE_GETTIMEOFDAY)
@@ -1790,7 +1789,6 @@ const char **s;
 			++*s;
 		} else {
 			cmp = COMP_LT;
-			++*s;
 		}
 	} else if (**s == '>') {
 		++*s;
@@ -1799,7 +1797,6 @@ const char **s;
 			++*s;
 		} else {
 			cmp = COMP_GT;
-			++*s;
 		}
 	} else {
 		str_trim (&left);

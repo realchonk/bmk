@@ -412,7 +412,6 @@ char **endptr;
 		} else {
 			break;
 		}
-		printf ("d = %d\n", d);
 
 		if (d >= base)
 			break;
