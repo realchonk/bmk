@@ -3165,7 +3165,7 @@ int *needs_update;
 		if (build_dir (&b, sc, dep->path, prefix) == 0) {
 			dep->obj = b.obj;
 
-			if (tv_cmp (&b.t, mt) >= 0)
+			if (tv_cmp (&b.t, mt) > 0)
 				*needs_update = 1;
 			if (tv_cmp (&b.t, maxt) > 0)
 				*maxt = b.t;
