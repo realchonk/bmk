@@ -1227,7 +1227,6 @@ struct expand_ctx *ctx;
 	struct macro *m;
 	const char *orig = *s;
 	char *t, *v;
-	int (*lu)();
 	str_t name, old_str, new_str;
 
 	++ctx->depth;
@@ -1305,15 +1304,18 @@ struct expand_ctx *ctx;
 			str_free (&new_str);
 			goto ret;
 		} else if (strcmp (str_get (&old_str), "U") == 0) {
-			lu = toupper;
-			goto do_LU;
-		} else if (strcmp (str_get (&old_str), "L") == 0) {
-			lu = tolower;
-		do_LU:
 			str_new (&new_str);
 
 			for (t = v; *t != '\0'; ++t)
-				str_putc (&new_str, (*lu)(*t));
+				str_putc (&new_str, toupper (*t));
+
+			free (v);
+			v = str_release (&new_str);
+		} else if (strcmp (str_get (&old_str), "L") == 0) {
+			str_new (&new_str);
+
+			for (t = v; *t != '\0'; ++t)
+				str_putc (&new_str, tolower (*t));
 
 			free (v);
 			v = str_release (&new_str);
