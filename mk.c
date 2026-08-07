@@ -284,6 +284,25 @@ const char *s, *t;
 	return u;
 }
 
+/*
+ * On old systems (2.11BSD, 4.3BSD) toupper()/tolower() are macros that
+ * convert unconditionally, eg. toupper(c) is ((c) - 'a' + 'A'), which
+ * mangles anything outside of a-z/A-Z.  Do the conversion ourselves.
+ */
+int
+mk_toupper (c)
+int c;
+{
+	return islower (c) ? c - 'a' + 'A' : c;
+}
+
+int
+mk_tolower (c)
+int c;
+{
+	return isupper (c) ? c - 'A' + 'a' : c;
+}
+
 char *
 ltrim (s)
 const char *s;
@@ -1227,6 +1246,7 @@ struct expand_ctx *ctx;
 	struct macro *m;
 	const char *orig = *s;
 	char *t, *v;
+	int (*lu)();
 	str_t name, old_str, new_str;
 
 	++ctx->depth;
@@ -1304,18 +1324,15 @@ struct expand_ctx *ctx;
 			str_free (&new_str);
 			goto ret;
 		} else if (strcmp (str_get (&old_str), "U") == 0) {
-			str_new (&new_str);
-
-			for (t = v; *t != '\0'; ++t)
-				str_putc (&new_str, toupper (*t));
-
-			free (v);
-			v = str_release (&new_str);
+			lu = mk_toupper;
+			goto do_LU;
 		} else if (strcmp (str_get (&old_str), "L") == 0) {
+			lu = mk_tolower;
+		do_LU:
 			str_new (&new_str);
 
 			for (t = v; *t != '\0'; ++t)
-				str_putc (&new_str, tolower (*t));
+				str_putc (&new_str, (*lu) (*t));
 
 			free (v);
 			v = str_release (&new_str);
