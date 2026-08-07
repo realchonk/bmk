@@ -627,17 +627,11 @@ int
 tv_cmp (a, b)
 const struct timespec *a, *b;
 {
-	if (a->tv_sec < b->tv_sec) {
-		return -1;
-	} else if (a->tv_sec > b->tv_sec) {
-		return 1;
-	} else if (a->tv_nsec < b->tv_nsec) {
-		return -1;
-	} else if (a->tv_nsec > b->tv_nsec) {
-		return 1;
-	} else {
-		return 0;
-	}
+	if (a->tv_sec != b->tv_sec)
+		return a->tv_sec < b->tv_sec ? -1 : 1;
+	if (a->tv_nsec != b->tv_nsec)
+		return a->tv_nsec < b->tv_nsec ? -1 : 1;
+	return 0;
 }
 
 #if NDEBUG
