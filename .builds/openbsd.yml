@@ -21,6 +21,7 @@ tasks:
       cd bmk
       ./configure
       mk
+      mk check
       doas mk install
   - build-211bsd: |
       cd bmk

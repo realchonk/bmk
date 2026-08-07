@@ -25,6 +25,10 @@ MANDIR ?= ${PREFIX}/share/man
 ## Build mk
 all: mk
 
+## Run the test suite
+check test: mk
+	sh tests/run.sh
+
 ## Remove build artifacts
 clean:
 	rm -f mk
