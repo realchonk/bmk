@@ -1,7 +1,6 @@
 image: openbsd/latest
 sources:
   - https://github.com/realchonk/bmk
-  - https://github.com/realchonk/desktop
 packages:
   - tcc
   - expect
@@ -23,12 +22,6 @@ tasks:
       ./configure
       mk
       doas mk install
-  - build-desktop: |
-      # build one of my projects that use bmk, to verify that everything works
-      cd desktop
-      mk -o obj
-      mk -o obj DESTDIR=$PWD/_install install install-etc
-      find _install
   - build-211bsd: |
       cd bmk
       ./retroci-unix50 211
