@@ -1,9 +1,10 @@
 image: openbsd/latest
 sources:
   - https://github.com/realchonk/bmk
-  - ssh://anon@stuerz.xyz:2269/desktop.git
+  - https://github.com/realchonk/desktop
 packages:
   - tcc
+  - expect
 tasks:
   - build-bootstrap: |
       cd bmk
@@ -28,3 +29,9 @@ tasks:
       mk -o obj
       mk -o obj DESTDIR=$PWD/_install install install-etc
       find _install
+  - build-211bsd: |
+      cd bmk
+      ./retroci-unix50 211
+  - build-43bsd: |
+      cd bmk
+      ./retroci-unix50 43

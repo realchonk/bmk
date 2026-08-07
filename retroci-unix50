@@ -1,0 +1,198 @@
+#!/bin/sh
+# run expect \
+exec expect -f "$0" "$@"
+
+# Set RETROCI_DEBUG=1 in the environment for verbose expect tracing.
+if { [info exists env(RETROCI_DEBUG)] } {
+	exp_internal 1
+}
+
+# lmap is missing in Tcl 8.5 (which is used by expect on OpenBSD)
+proc lmap {_var list body} {
+	upvar 1 $_var var
+	set res {}
+	foreach var $list {lappend res [uplevel 1 $body]}
+	set res
+}
+
+# Run a command on the remote machine and verify its exit status.
+# The status is queried explicitly, because a failing build would
+# otherwise go unnoticed and the script would report a bogus success.
+proc run {cmd {t 60} {want 0}} {
+	global prompt
+
+	set timeout $t
+	expect {
+		-ex $prompt { send "$cmd\r" }
+		timeout     { error "timed out waiting for a prompt before: $cmd" }
+	}
+
+	set timeout $t
+	expect {
+		-ex $prompt { send "echo rc=\$?\r" }
+		timeout     { error "timed out running: $cmd" }
+	}
+
+	set timeout 30
+	expect {
+		-re "rc=(\[0-9]+)\r" {
+			if { $expect_out(1,string) != $want } {
+				error "failed (exit $expect_out(1,string), wanted $want): $cmd"
+			}
+		}
+		timeout { error "timed out checking the exit status of: $cmd" }
+	}
+}
+
+if { $argc != 1 } {
+	error "usage: retroci-unix50 <211|43>"
+}
+
+set machine [lindex $argv 0]
+switch -- $machine {
+	211 {
+		set name    "2.11BSD"
+		set letter  "k"
+		set login   "root"
+		set passwd  "r00tr00t"
+		# Boots single user; needs RETURN at ":" and then CTRL-D.
+		set single  1
+	}
+	43 {
+		set name    "4.3BSD"
+		set letter  "j"
+		set login   "root"
+		set passwd  ""
+		# Boots straight to multiuser, root has no password.
+		set single  0
+	}
+	default {
+		error "invalid machine: $machine (use 211 or 43)"
+	}
+}
+
+# Prepare mk
+puts "Cleaning..."
+exec mk distclean
+
+# The tarball is always packed as mk/ regardless of the actual directory name
+# so the remote side can always do "cd mk".
+set srcdir [file tail [pwd]]
+
+set files {mk.[1ch] compats.[ch] configure Mkfile}
+set globbed [lmap f $files {glob "$f"}]
+set prefixed [lmap f [join $globbed] {expr {"mk/$f"}}]
+
+puts "Generating tarball..."
+# If the working directory is not named "mk", create a temporary symlink
+# in the parent so tar can pack the files under the mk/ prefix.
+if { $srcdir ne "mk" } {
+	exec sh -c "cd ..; ln -sf $srcdir mk"
+	set data [exec sh -c "cd ..; tar -cf - -F tar $prefixed | compress -b12 | uuencode mk.tar.Z"]
+	exec sh -c "cd ..; rm -f mk"
+} else {
+	set data [exec sh -c "cd ..; tar -cf - -F tar $prefixed | compress -b12 | uuencode mk.tar.Z"]
+}
+
+puts "Connecting to $name via unix50.org..."
+spawn ssh -p 222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null unix50@unix50.org
+
+# Default timeout for interactive exchanges that should be near-instant.
+set timeout 5
+
+# SSH password prompt.
+expect {
+	"assword:" { send "unix50\r" }
+	timeout    { error "timed out waiting for SSH password prompt" }
+}
+
+# The unix50.org menu ends with "Your choice? "; select the target VM.
+# The menu looks like:
+#   [j]  4.3 BSD    MicroVAX  June 1986
+#   [k]  2.11 BSD   PDP-11/70 January 1992
+# Press the letter and the VM boots.
+set timeout 5
+expect {
+	"Your choice?" { send "$letter\r" }
+	timeout        { error "timed out waiting for unix50 menu" }
+}
+
+# Boot the VM.  Emulated PDP-11/VAX hardware is slow, so allow plenty of
+# time.  2.11BSD stops at a ":" boot prompt where RETURN boots the default
+# kernel single user, and CTRL-D then completes the boot into multiuser
+# mode.  4.3BSD boots straight to multiuser on its own.
+set timeout 300
+if { $single } {
+	expect {
+		"Boot from"	{}
+		timeout		{ error "timed out booting $name" }
+	}
+
+	expect {
+		"\n\r\x7f: "	{ send "\r" }
+		timeout		{ error "timed out booting $name" }
+	}
+
+	expect {
+		"\n# "   	{ send "\004" }
+		timeout		{ error "timed out booting $name" }
+	}
+}
+
+# Log in and set a sane terminal type.  getty is not necessarily ready the
+# instant the first login prompt appears, so the login name is retried when
+# the prompt shows up again.  Not every machine has a root password, so the
+# password prompt is optional.
+set timeout 120
+set prompt "\n# "
+set tries 0
+expect {
+	"login: " {
+		incr tries
+		if { $tries > 5 } {
+			error "cannot log in to $name"
+		}
+		sleep 2
+		send "$login\r"
+		exp_continue
+	}
+	"assword:" { send "$passwd\r"; exp_continue }
+	"\n# "     { send "TERM=vt100; export TERM\r" }
+	"\n\$ "    { set prompt "\n\$ "; send "TERM=vt100; export TERM\r" }
+	timeout    { error "timed out waiting for the shell prompt" }
+}
+
+run "rm -rf mk mk.tar.Z"
+
+# Transfer the source tarball as a uuencoded, compressed stream.
+expect {
+	-ex $prompt {
+		send "uudecode\r"
+		send "$data"
+		send "\r"
+	}
+	timeout { error "timed out starting uudecode" }
+}
+
+# Unpack in two steps rather than a pipeline: a pipeline only reports the
+# status of its last command and is prone to SIGPIPE on these old shells.
+# The prompt after uudecode is consumed by the next run, which therefore
+# needs a generous timeout to cover the transfer itself.
+run "uncompress mk.tar.Z" 300
+run "tar xf mk.tar" 120
+run "cd mk"
+run "./configure --prefix=/usr/local" 300
+run "make" 900
+run "cp mk xmk"
+run "./xmk clean all" 900
+# "mk -h" prints the help through usage(), which exits 1.
+run "./xmk -hv" 60 1
+
+puts "\n=== $name: OK ==="
+
+# Log out of the VM, which also closes the SSH session.
+set timeout 5
+expect {
+	-ex $prompt { send "\004" }
+	timeout     { error "timed out waiting for the final prompt" }
+}
