@@ -498,28 +498,6 @@ fi
 echo >>config.h
 echo '/* Special Tests */' >>config.h
 
-echo 'checking if <sys/file.h> defines F_OK...' >>config.log
-echo -n 'checking if <sys/file.h> defines F_OK... '
-cat >conftest.c <<EOF
-/* 2.11BSD defines *_OK macros in <sys/file.h> */
-#ifdef F_OK
-#undef F_OK
-#endif
-#include <sys/file.h>
-
-int main ()
-{
-	return F_OK;
-}
-EOF
-if eval "$try_compile"; then
-	echo yes
-	echo "#define NEED_SYS_FILE_H 1" >>config.h
-else
-	echo no
-	echo "#undef NEED_SYS_FILE_H" >>config.h
-fi
-
 echo 'checking if <time.h> is needed...' >>config.log
 echo -n 'checking if <time.h> is needed... '
 cat >conftest.c <<EOF

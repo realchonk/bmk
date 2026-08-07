@@ -26,9 +26,6 @@
 #if HAVE_FTIME && HAVE_SYS_TIMEB_H
 # include <sys/timeb.h>
 #endif
-#if NEED_SYS_FILE_H
-# include <sys/file.h>
-#endif
 #include <assert.h>
 #if HAVE_UNISTD_H
 # include <unistd.h>

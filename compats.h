@@ -88,6 +88,27 @@ extern void *memmove ();
 # endif
 #endif
 
+/*
+ * On 2.11BSD the access() modes live in <sys/file.h>, which also declares
+ * its own "struct file" and thus collides with ours.  Define them here
+ * instead of pulling that header in.
+ */
+#ifndef F_OK
+# define F_OK 0
+#endif
+
+#ifndef X_OK
+# define X_OK 1
+#endif
+
+#ifndef W_OK
+# define W_OK 2
+#endif
+
+#ifndef R_OK
+# define R_OK 4
+#endif
+
 #ifndef STDIN_FILENO
 # define STDIN_FILENO 0
 #endif
