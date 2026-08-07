@@ -1051,6 +1051,162 @@ struct expand_ctx *ctx;
 	}
 }
 
+/* per-word modifier helpers for subst2() */
+
+struct sw_F_arg {
+	struct scope *sc;
+	const struct path *prefix;
+};
+
+/* :F - prefix each word with ${.OBJDIR}/<scope>/ when it lives in objdir */
+int
+sw_F (dst, w, arg)
+	str_t *dst;
+	char *w;
+	void_t *arg;
+{
+	struct sw_F_arg *a;
+	struct filetime ft;
+
+	a = (struct sw_F_arg *)arg;
+	if (get_mtime (&ft, a->sc, a->prefix, w) == 0 && ft.obj) {
+		write_objdir (dst, a->sc);
+		str_putc (dst, '/');
+	}
+	str_puts (dst, w);
+	return 1;
+}
+
+/* :E - keep the suffix, drop the rest */
+int
+sw_E (dst, w, arg)
+	str_t *dst;
+	char *w;
+	void_t *arg;
+{
+	char *u;
+
+	(void) arg;
+	u = strrchr (w, '.');
+	if (u == NULL || strchr (u, '/') != NULL)
+		return 0;
+	str_puts (dst, u);
+	return 1;
+}
+
+/* :R - drop the suffix */
+int
+sw_R (dst, w, arg)
+	str_t *dst;
+	char *w;
+	void_t *arg;
+{
+	char *u;
+
+	(void) arg;
+	u = strrchr (w, '.');
+	if (u != NULL && strchr (u, '/') == NULL)
+		*u = '\0';
+	str_puts (dst, w);
+	return 1;
+}
+
+/* :H - dirname() */
+int
+sw_H (dst, w, arg)
+	str_t *dst;
+	char *w;
+	void_t *arg;
+{
+	(void) arg;
+	str_puts (dst, dirname (w));
+	return 1;
+}
+
+/* :T - basename() */
+int
+sw_T (dst, w, arg)
+	str_t *dst;
+	char *w;
+	void_t *arg;
+{
+	(void) arg;
+	str_puts (dst, basename (w));
+	return 1;
+}
+
+/* :M - keep words matching the fnmatch() pattern in `arg` */
+int
+sw_M (dst, w, arg)
+	str_t *dst;
+	char *w;
+	void_t *arg;
+{
+	if (fnmatch ((char *)arg, w, 0) != 0)
+		return 0;
+	str_puts (dst, w);
+	return 1;
+}
+
+/* :N - drop words matching the fnmatch() pattern in `arg` */
+int
+sw_N (dst, w, arg)
+	str_t *dst;
+	char *w;
+	void_t *arg;
+{
+	if (fnmatch ((char *)arg, w, 0) == 0)
+		return 0;
+	str_puts (dst, w);
+	return 1;
+}
+
+/* identity transform - used by :J, where `sep` does the joining */
+int
+sw_id (dst, w, arg)
+	str_t *dst;
+	char *w;
+	void_t *arg;
+{
+	(void) arg;
+	str_puts (dst, w);
+	return 1;
+}
+
+/*
+ * Split `v` into whitespace-separated words; pass each non-empty word to
+ * fn(dst, word, arg).  Words fn accepts (non-zero return) are joined into the
+ * result by `sep`.  Frees `v` and returns a freshly allocated string.
+ */
+char *
+subst_words (v, sep, fn, arg)
+	char *v;
+	const char *sep;
+	int (*fn) ();
+	void_t *arg;
+{
+	str_t out, tmp;
+	char *t, *w;
+	int first = 1;
+
+	str_new (&out);
+	str_new (&tmp);
+	for (t = v; (w = strsep (&t, " \t")) != NULL; ) {
+		if (*w == '\0')
+			continue;
+		str_reset (&tmp);
+		if ((*fn) (&tmp, w, arg)) {
+			if (!first)
+				str_puts (&out, sep);
+			str_write (&out, tmp.ptr, tmp.len);
+			first = 0;
+		}
+	}
+	str_free (&tmp);
+	free (v);
+	return str_release (&out);
+}
+
 /* ${name}		just the value of macro called `name`
  * ${name:old=new}	replace `old` with `new`, must be the last modifier
  * ${name:U}		replace each word with its upper case equivalent
@@ -1064,8 +1220,6 @@ struct expand_ctx *ctx;
  * ${name:Mpattern}	select only words that match pattern
  * ${name:Npattern}	opposite of :Mpattern
  * ${name:Jstring}	join words by string
- * TODO:
- * somehow make this function shorter
  */
 void
 subst2 (out, sc, prefix, s, ctx)
@@ -1079,12 +1233,10 @@ struct expand_ctx *ctx;
 	extern void expand_macro_into ();
 	extern void subst ();
 	struct macro *m;
-	struct filetime ft;
 	const char *orig = *s;
-	char *t, *u, *v, *w;
-	const char *pattern;
+	char *t, *v;
+	int (*lu)();
 	str_t name, old_str, new_str;
-	int first;
 
 	++ctx->depth;
 	if (ctx->depth >= MAX_EXPAND_DEPTH)
@@ -1161,157 +1313,37 @@ struct expand_ctx *ctx;
 			str_free (&new_str);
 			goto ret;
 		} else if (strcmp (str_get (&old_str), "U") == 0) {
-			str_new (&new_str);
-
-			for (t = v; *t != '\0'; ++t)
-				str_putc (&new_str, toupper (*t));
-
-			free (v);
-			v = str_release (&new_str);
+			lu = toupper;
+			goto do_LU;
 		} else if (strcmp (str_get (&old_str), "L") == 0) {
+			lu = tolower;
+		do_LU:
 			str_new (&new_str);
 
 			for (t = v; *t != '\0'; ++t)
-				str_putc (&new_str, tolower (*t));
+				str_putc (&new_str, (*lu)(*t));
 
 			free (v);
 			v = str_release (&new_str);
 		} else if (strcmp (str_get (&old_str), "F") == 0) {
-			str_new (&new_str);
-
-			for (t = v; (w = strsep (&t, " \t")) != NULL; ) {
-				if (*w == '\0')
-					continue;
-
-				if (get_mtime (&ft, sc, prefix, w) == 0 && ft.obj) {
-					write_objdir (&new_str, sc);
-					str_putc (&new_str, '/');
-				}
-				str_puts (&new_str, w);
-				str_putc (&new_str, ' ');
-			}
-			str_pop (&new_str);
-
-			free (v);
-			v = str_release (&new_str);
+			struct sw_F_arg a;
+			a.sc = sc;
+			a.prefix = prefix;
+			v = subst_words (v, " ", sw_F, &a);
 		} else if (strcmp (str_get (&old_str), "E") == 0) {
-			str_new (&new_str);
-
-			for (t = v; (w = strsep (&t, " \t")) != NULL; ) {
-				if (*w == '\0')
-					continue;
-
-				u = strrchr (w, '.');
-				if (u == NULL || strchr (u, '/') != NULL)
-					continue;
-
-				str_puts (&new_str, u);
-				str_putc (&new_str, ' ');
-			}
-
-			str_pop (&new_str);
-			free (v);
-			v = str_release (&new_str);
+			v = subst_words (v, " ", sw_E, NULL);
 		} else if (strcmp (str_get (&old_str), "R") == 0) {
-			str_new (&new_str);
-
-			for (t = v; (w = strsep (&t, " \t")) != NULL; ) {
-				if (*w == '\0')
-					continue;
-
-				u = strrchr (w, '.');
-				if (u != NULL && strchr (u, '/') == NULL)
-					*u = '\0';
-
-				str_puts (&new_str, w);
-				str_putc (&new_str, ' ');
-			}
-
-			str_pop (&new_str);
-			free (v);
-			v = str_release (&new_str);
+			v = subst_words (v, " ", sw_R, NULL);
 		} else if (strcmp (str_get (&old_str), "H") == 0) {
-			str_new (&new_str);
-
-			for (t = v; (w = strsep (&t, " \t")) != NULL; ) {
-				if (*w == '\0')
-					continue;
-
-				str_puts (&new_str, dirname (w));
-				str_putc (&new_str, ' ');
-			}
-
-			str_pop (&new_str);
-			free (v);
-			v = str_release (&new_str);
+			v = subst_words (v, " ", sw_H, NULL);
 		} else if (strcmp (str_get (&old_str), "T") == 0) {
-			str_new (&new_str);
-
-			for (t = v; (w = strsep (&t, " \t")) != NULL; ) {
-				if (*w == '\0')
-					continue;
-
-				str_puts (&new_str, basename (w));
-				str_putc (&new_str, ' ');
-			}
-
-			str_pop (&new_str);
-			free (v);
-			v = str_release (&new_str);
+			v = subst_words (v, " ", sw_T, NULL);
 		} else if (str_get (&old_str)[0] == 'M') {
-			str_new (&new_str);
-
-			pattern = str_get (&old_str) + 1;
-
-			for (t = v; (w = strsep (&t, " \t")) != NULL; ) {
-				if (*w == '\0')
-					continue;
-
-				if (fnmatch (pattern, w, 0) != 0)
-					continue;
-
-				str_puts (&new_str, w);
-				str_putc (&new_str, ' ');
-			}
-
-			str_pop (&new_str);
-			free (v);
-			v = str_release (&new_str);
+			v = subst_words (v, " ", sw_M, (void_t *) (str_get (&old_str) + 1));
 		} else if (str_get (&old_str)[0] == 'N') {
-			str_new (&new_str);
-
-			pattern = str_get (&old_str) + 1;
-
-			for (t = v; (w = strsep (&t, " \t")) != NULL; ) {
-				if (*w == '\0')
-					continue;
-
-				if (fnmatch (pattern, w, 0) == 0)
-					continue;
-
-				str_puts (&new_str, w);
-				str_putc (&new_str, ' ');
-			}
-
-			str_pop (&new_str);
-			free (v);
-			v = str_release (&new_str);
+			v = subst_words (v, " ", sw_N, (void_t *) (str_get (&old_str) + 1));
 		} else if (str_get (&old_str)[0] == 'J') {
-			str_new (&new_str);
-			pattern = str_get (&old_str) + 1;
-			first = 1;
-
-			for (t = v; (w = strsep (&t, " \t")) != NULL; first = 0) {
-				if (*w == '\0')
-					continue;
-
-				if (!first)
-					str_puts (&new_str, pattern);
-				str_puts (&new_str, w);
-			}
-
-			free (v);
-			v = str_release (&new_str);
+			v = subst_words (v, str_get (&old_str) + 1, sw_id, NULL);
 		} else {
 			errx (1, "%s: invalid modifier: ':%s' in '${%s'", sc_path_str (sc), str_get (&old_str), orig);
 		}
@@ -2928,7 +2960,8 @@ char *
 replace_suffix (name, sufx)
 const char *name, *sufx;
 {
-	char *out, *ext;
+	const char *ext;
+	char *out;
 	size_t len_name, len_sufx;
 
 	ext = strrchr (name, '.');

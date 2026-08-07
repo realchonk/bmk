@@ -71,6 +71,13 @@ an empty `[]` means the top-level scope.
   compilers.
 - **Declarations at the start of a block/function** (C89), never mid-block —
   a stated portability goal.
+- **No `#elif`.** The target preprocessors are too primitive to support it.
+  Use stacked `#if`/`#endif` instead (with `&&` / `!defined(...)` guards to
+  make the branches mutually exclusive — see `now()` in `mk.c`).
+- **`compats.c` deliberately does not include `compats.h`.** The shared
+  macros (`void_t`, the `void`-redefinition, `__dead`, `PATH_MAX`) are
+  duplicated across the two files on purpose; don't "deduplicate" by adding
+  the include.
 
 ## Architecture: scopes, not strings
 

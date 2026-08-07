@@ -21,6 +21,7 @@ enum scope_type {
 	SC_DIR,
 	SC_CUSTOM,
 };
+
 struct scope {
 	struct scope *next;
 	enum scope_type type;
