@@ -3319,7 +3319,7 @@ const struct path *prefix;
 			ectx_init (
 				/* ctx    */ &ctx, 
 				/* sc     */ sc,
-				/* target */ name != NULL ? strdup (name) : name,
+				/* target */ strdup (name != NULL ? name : ""),
 				/* deps   */ f->dhead,
 				/* infdeps*/ NULL
 			);
@@ -3353,7 +3353,7 @@ const struct path *prefix;
 		ectx_init (
 			/* ctx    */ &ctx, 
 			/* sc     */ sc,
-			/* target */ name != NULL ? strdup (name) : NULL,
+			/* target */ strdup (name != NULL ? name : ""),
 			/* deps   */ f->dhead,
 			/* infdeps*/ NULL
 		);
