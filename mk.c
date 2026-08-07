@@ -39,7 +39,8 @@
 #endif
 #if HAVE_STDBOOL_H
 # include <stdbool.h>
-#elif (!defined(__STDC_VERSION__) || __STDC_VERSION__ < 202311L) && !__bool_true_false_are_defined
+#endif
+#if !HAVE_STDBOOL_H && (!defined(__STDC_VERSION__) || __STDC_VERSION__ < 202311L) && !__bool_true_false_are_defined
 # if HAVE__BOOL
 #  define bool _Bool
 # else
