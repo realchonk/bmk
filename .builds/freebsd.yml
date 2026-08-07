@@ -6,6 +6,7 @@ tasks:
       cd bmk
       ./configure
       make
+      make check
       sudo make install
       make distclean
   - build-self: |
