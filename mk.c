@@ -688,7 +688,7 @@ const struct timespec *a, *b;
 
 #if NDEBUG
 # define sc_dir(sc) ((sc)->dir)
-# define sc_custom(sc) ((sc)->custom)
+# define sc_foreign(sc) ((sc)->foreign)
 #else
 struct directory *
 sc_dir (sc)
@@ -698,12 +698,12 @@ struct scope *sc;
 	return sc->inner.dir;
 }
 
-struct custom *
-sc_custom (sc)
+struct foreign *
+sc_foreign (sc)
 struct scope *sc;
 {
-	assert (sc->type == SC_CUSTOM);
-	return sc->inner.custom;
+	assert (sc->type == SC_FOREIGN);
+	return sc->inner.foreign;
 }
 #endif
 
@@ -2208,7 +2208,7 @@ struct dep *dep;
 }
 
 void
-custom_remember (sc, name, t, obj)
+foreign_remember (sc, name, t, obj)
 struct scope *sc;
 const char *name;
 struct timespec t;
@@ -2220,7 +2220,7 @@ int obj;
 	b->name = strdup (name != NULL ? name : "");
 	b->t = t;
 	b->obj = obj;
-	SLIST_INSERT_HEAD (&sc_custom (sc)->built, b, next);
+	SLIST_INSERT_HEAD (&sc_foreign (sc)->built, b, next);
 }
 
 char *
@@ -2274,7 +2274,7 @@ parse_foreign (sc, s)
 struct scope *sc;
 char *s;
 {
-	struct custom *cs;
+	struct foreign *cs;
 	struct scope *sub;
 	const char *name;
 	char *subdir;
@@ -2287,14 +2287,14 @@ char *s;
 
 		name = trim (subdir);
 		sub = new_subdir (sc, name);
-		sub->type = SC_CUSTOM;
+		sub->type = SC_FOREIGN;
 		sub->makefile = NULL;
-		cs = new (struct custom);
+		cs = new (struct foreign);
 		cs->test = NULL;
 		cs->exec = NULL;
 		TAILQ_INIT (&cs->deps);
 		SLIST_INIT (&cs->built);
-		sub->inner.custom = cs;
+		sub->inner.foreign = cs;
 	}
 }
 
@@ -2330,7 +2330,7 @@ char *s;
 }
 
 bool
-try_add_custom (sc, f)
+try_add_foreign (sc, f)
 struct scope *sc;
 struct file *f;
 {
@@ -2350,13 +2350,13 @@ struct file *f;
 	if (sub == NULL)
 		errx (1, "%s: not a subdir: %s", sc_path_str (sc), name);
 
-	if (sub->type != SC_CUSTOM)
-		errx (1, "%s: not a custom subdir: %s", sc_path_str (sc), name);
+	if (sub->type != SC_FOREIGN)
+		errx (1, "%s: not a foreign subdir: %s", sc_path_str (sc), name);
 
 	if (ch == '?') {
-		sub->inner.custom->test = f;
+		sub->inner.foreign->test = f;
 	} else {
-		sub->inner.custom->exec = f;
+		sub->inner.foreign->exec = f;
 	}
 
 	free (name);
@@ -2364,27 +2364,27 @@ struct file *f;
 }
 
 /*
- * If 'name' is the bare name of an SC_CUSTOM subdir, append 'dhead..dtail'
+ * If 'name' is the bare name of an SC_FOREIGN subdir, append 'dhead..dtail'
  * to its ordering dep list and return true.  The rule (if any) must be
  * empty; if the caller supplied commands, we error out.
  */
 bool
-try_add_custom_deps (sc, name, src)
+try_add_foreign_deps (sc, name, src)
 struct scope *sc;
 const char *name;
 struct dep_list *src;
 {
 	struct scope *sub;
-	struct custom *cs;
+	struct foreign *cs;
 
 	sub = find_subdir (sc, name);
-	if (sub == NULL || sub->type != SC_CUSTOM)
+	if (sub == NULL || sub->type != SC_FOREIGN)
 		return false;
 
 	if (TAILQ_EMPTY (src))
 		return true;
 
-	cs = sc_custom (sub);
+	cs = sc_foreign (sub);
 	TAILQ_CONCAT (&cs->deps, src, link);
 	return true;
 }
@@ -2490,7 +2490,7 @@ char *s, *t, *help;
 
 			dup_deps (&deps, &cdeps);
 
-			if (f == NULL && try_add_custom_deps (sc, p, &cdeps)) {
+			if (f == NULL && try_add_foreign_deps (sc, p, &cdeps)) {
 				flag = 1;
 				continue;
 			}
@@ -2507,9 +2507,9 @@ char *s, *t, *help;
 					/* inf  */ NULL,
 					/* obj  */ ft.obj
 				);
-				/* TODO: maybe first do try_add_custom()? */
+				/* TODO: maybe first do try_add_foreign()? */
 				dir_add_file (sc_dir (sc), f);
-				try_add_custom (sc, f);
+				try_add_foreign (sc, f);
 				flag = 1;
 			} else {
 				if (f->help == NULL)
@@ -3374,9 +3374,9 @@ const struct path *prefix;
 		f->obj = ft.obj;
 		build_init (out, f->mtime, f, f->obj);
 		return 0;
-	case SC_CUSTOM:
+	case SC_FOREIGN:
 		bname = name != NULL ? name : "";
-		SLIST_FOREACH (cb, &sc_custom (sc)->built, next) {
+		SLIST_FOREACH (cb, &sc_foreign (sc)->built, next) {
 			if (strcmp (cb->name, bname) == 0) {
 				build_init (out, cb->t, NULL, cb->obj);
 				return 0;
@@ -3388,7 +3388,7 @@ const struct path *prefix;
 
 
 		/* build ordering deps declared on the bare subdir name */
-		TAILQ_FOREACH (dep, &sc_custom (sc)->deps, link) {
+		TAILQ_FOREACH (dep, &sc_foreign (sc)->deps, link) {
 			if (build_dir (&b, sc->parent, dep->path, new_prefix) != 0) {
 				free (new_prefix);
 				return 1;
@@ -3404,7 +3404,7 @@ const struct path *prefix;
 			scoped_rule = strdup (sc->name);
 		}
 
-		f = sc_custom (sc)->test;
+		f = sc_foreign (sc)->test;
 		if (f != NULL) {
 			assert (f->inf == NULL);
 
@@ -3449,13 +3449,13 @@ const struct path *prefix;
 			} else {
 				build_init (out, time_zero, NULL, 0);
 			}
-			custom_remember (sc, name, out->t, out->obj);
+			foreign_remember (sc, name, out->t, out->obj);
 			free (scoped_rule);
 			return 0;
 		}
 
 		/* run the "subdir!" rule */
-		f = sc_custom (sc)->exec;
+		f = sc_foreign (sc)->exec;
 		if (f == NULL)
 			errx (1, "%s: missing '%s!' rule", sc_path_str (sc->parent), sc->name);
 		assert (f->inf == NULL);
@@ -3497,7 +3497,7 @@ const struct path *prefix;
 		} else {
 			build_init (out, now (), NULL, 0);
 		}
-		custom_remember (sc, name, out->t, out->obj);
+		foreign_remember (sc, name, out->t, out->obj);
 		free (scoped_rule);
 		return 0;
 	}
@@ -3715,6 +3715,19 @@ struct scope *sc;
 	if (sc->type != SC_DIR || sc_dir (sc) == NULL)
 		errx (1, "%s: print_sc(): must be of type SC_DIR", sc_path_str (sc));
 
+	printf (".SUBDIRS:");
+	SLIST_FOREACH (sub, &sc_dir (sc)->subdirs, next) {
+		if (sub->type == SC_DIR)
+			printf (" %s", sub->name);
+	}
+	printf ("\n");
+	printf (".FOREIGN:");
+	SLIST_FOREACH (sub, &sc_dir (sc)->subdirs, next) {
+		if (sub->type == SC_FOREIGN)
+			printf (" %s", sub->name);
+	}
+	printf ("\n");
+
 	if (sc_dir (sc)->default_file != NULL)
 		printf (".DEFAULT: %s\n", sc_dir (sc)->default_file);
 
@@ -3756,20 +3769,6 @@ struct scope *sc;
 			for (s = inf->rule->code; *s != NULL; ++s)
 				printf ("\t%s\n", *s);
 			printf ("\n");
-		}
-	}
-
-	SLIST_FOREACH (sub, &sc_dir (sc)->subdirs, next) {
-		switch (sub->type) {
-		case SC_DIR:
-			printf (".include %s, DIR", sub->name);
-			if (sc->makefile != NULL)
-				printf (", %s", sc->makefile);
-			printf ("\n");
-			break;
-		case SC_CUSTOM:
-			printf (".include %s, CUSTOM\n", sub->name);
-			break;
 		}
 	}
 

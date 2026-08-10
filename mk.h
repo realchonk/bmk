@@ -20,7 +20,7 @@ SLIST_HEAD(template_list, template);
 
 enum scope_type {
 	SC_DIR,
-	SC_CUSTOM,
+	SC_FOREIGN,
 };
 
 struct scope {
@@ -32,14 +32,14 @@ struct scope {
 	int created;
 	union {
 		struct directory *dir; /* optional */
-		struct custom *custom; /* required */
+		struct foreign *foreign; /* required */
 	} inner;
 };
 SLIST_HEAD(scope_list, scope);
 
 /*
  * struct dep: doubly-linked, always owned by exactly one struct file or
- * struct custom (via dhead/dtail).  Ownership is expressed as a TAILQ.
+ * struct foreign (via dhead/dtail).  Ownership is expressed as a TAILQ.
  */
 struct dep {
 	TAILQ_ENTRY(dep) link;
@@ -109,7 +109,7 @@ struct cbuilt {
 };
 SLIST_HEAD(cbuilt_list, cbuilt);
 
-struct custom {
+struct foreign {
 	struct file *test, *exec;
 	struct dep_list deps; /* ordering deps (bare name: target) */
 	struct cbuilt_list built; /* targets already built this run */

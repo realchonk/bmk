@@ -86,7 +86,7 @@ bmk's core difference from make is that **targets/dependencies are paths
 avoids both recursive make and one giant Makefile. All core data structures
 live in `mk.h` (`scope`, `directory`, `file`, `dep`, `inference`, `macro`,
 `path`). A scope is either `SC_DIR` (holding a `struct directory`) or
-`SC_CUSTOM` (wrapping a foreign GNU/BSD build system via a `test`/`exec`
+`SC_FOREIGN` (wrapping a foreign GNU/BSD build system via a `test`/`exec`
 file pair). Evaluation flow (also mapped in `TODO.md`): bottom-up
 `parse_recursive()`, top-down `parse()`, lazy includes, `expand()` for macro
 expansion, then `build()` / `build_file()`. Inference rules can be
