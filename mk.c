@@ -1621,6 +1621,7 @@ struct expand_ctx *ctx;
 {
 	char *shell, *ecmd, *args[5];
 	struct timespec t_before, t_after, t_elapsed;
+	str_t fullrule;
 	pid_t pid;
 	mk_wait_t ws;
 	int i = 0, q = 0, ign = 0, rc;
@@ -1635,14 +1636,22 @@ struct expand_ctx *ctx;
 		q = 1;
 	}
 
+	/* build full rule path: prefix/rule (mirrors the echo label) */
+	str_new (&fullrule);
+	if (prefix[0].type != PATH_NULL) {
+		path_write (&fullrule, prefix);
+		if (rule != NULL)
+			str_putc (&fullrule, '/');
+	}
+	if (rule != NULL)
+		str_puts (&fullrule, rule);
+
 	shell = get_shell (sc, prefix, ctx);
 	ecmd = expand (sc, prefix, cmd, ctx);
 
 	if (!q) {
-		printf ("[%s%s%s] $ %s\n",
-			prefix[0].type != PATH_NULL ? path_to_str (prefix) : "",
-			prefix[0].type != PATH_NULL && rule != NULL ? "/" : "",
-			rule != NULL ? rule : "",
+		printf ("[%s] $ %s\n",
+			str_get (&fullrule),
 			verbose ? ecmd : cmd
 		);
 	}
@@ -1658,6 +1667,7 @@ struct expand_ctx *ctx;
 	args[i] = NULL;
 
 	if (pid == 0) {
+		str_free (&fullrule);
 		close (STDIN_FILENO);
 		if (open ("/dev/null", O_RDONLY) != STDIN_FILENO)
 			warn ("%d: open('/dev/null')", STDIN_FILENO);
@@ -1670,6 +1680,7 @@ struct expand_ctx *ctx;
 	} else {
 		free (shell);
 		if (wait (&ws) != pid) {
+			str_free (&fullrule);
 			free (ecmd);
 			warn ("wait()");
 			return 254;
@@ -1680,13 +1691,14 @@ struct expand_ctx *ctx;
 
 		if (timings_file != NULL) {
 			fprintf (timings_file, "%s,%ld,%ld,%s\n",
-				rule != NULL ? rule : "",
+				str_get (&fullrule),
 				(long)t_elapsed.tv_sec,
 				t_elapsed.tv_nsec,
 				ecmd
 			);
 		}
 
+		str_free (&fullrule);
 		free (ecmd);
 
 		if (!WIFEXITED (ws)) {
