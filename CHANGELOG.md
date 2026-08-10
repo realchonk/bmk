@@ -5,6 +5,32 @@ All notable changes to `bmk` (the `mk` binary) are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+### Fixed
+- `$@` is now set to an empty string (instead of being left as a null
+  pointer) when building the default rule of a `.FOREIGN:` subdirectory,
+  preventing a potential null-dereference.
+- The `<` and `>` comparison operators in `.if` conditions no longer
+  advance the parse pointer an extra time when the next character is not
+  `=`, fixing incorrect evaluation of bare `<` / `>` comparisons.
+- `now()` no longer copies `tv_sec` into `tv_nsec` when falling back to
+  `gettimeofday(2)`; nanoseconds are now correctly derived from
+  `tv_usec * 1000`.
+
+### Portability
+- `toupper()`/`tolower()` are now wrapped in `mk_toupper()`/`mk_tolower()`
+  to avoid the unconditional macro definitions on 2.11BSD and 4.3BSD,
+  which mangled characters outside `a-z`/`A-Z` and broke the `:U` and `:L`
+  macro modifiers on those systems.
+- `F_OK`, `X_OK`, `W_OK`, and `R_OK` are now defined directly in
+  `compats.h` instead of conditionally including `<sys/file.h>`, which
+  declares its own `struct file` and collided with bmk's internal type.
+- Replaced all `#elif` directives with stacked `#if`/`#endif` blocks for
+  compatibility with primitive preprocessors (2.11BSD, XENIX).
+
 ## [0.3] - 2026-08-06
 
 ### Added
