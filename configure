@@ -306,6 +306,7 @@ do
 	echo -n "checking for <$header>... "
 
 	cat >conftest.c <<EOF
+
 #include <$header>
 int main ()
 {
@@ -328,6 +329,7 @@ echo "/* sys/queue.h - test for a complete OpenBSD-compatible implementation */"
 echo 'checking for complete <sys/queue.h>...' >>config.log
 echo -n 'checking for complete <sys/queue.h>... '
 cat >conftest.c <<EOF
+#include <stddef.h>
 #include <sys/queue.h>
 
 struct foo {
