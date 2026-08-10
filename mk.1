@@ -11,6 +11,7 @@
 .Op Fl C Ar dir
 .Op Fl f Ar makefile
 .Op Fl o Ar objdir
+.Op Fl t Ar file
 .Op Fl V Ar var
 .Op Ar target ...
 .Sh DESCRIPTION
@@ -79,6 +80,29 @@ This option overrides
 Stop processing as soon as a command returns a non-zero status.
 This is the default behavior and is the opposite of
 .Fl k .
+.It Fl t Ar file
+After each shell command completes, append a timing record to
+.Ar file .
+If
+.Ar file
+is
+.Sq Fl ,
+records are written to standard output instead.
+Each record is a comma-separated line of the form:
+.Bd -literal -offset indent
+RULE,TIME_S,TIME_NS,COMMAND
+.Ed
+.Pp
+.Ar RULE
+is the name of the target being built,
+.Ar TIME_S
+is the wall-clock seconds elapsed,
+.Ar TIME_NS
+is the nanosecond remainder, and
+.Ar COMMAND
+is the fully expanded shell command that was executed.
+.Ar COMMAND
+is placed last because it may itself contain commas.
 .It Fl V Ar var
 Expand
 .Ar var

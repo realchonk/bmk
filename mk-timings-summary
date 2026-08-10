@@ -1,0 +1,85 @@
+#!/bin/sh
+# mk-timings-summary - summarise a timings file produced by mk -t
+#
+# Usage: mk-timings-summary [file]
+#   file  timings CSV written by mk -t (default: stdin)
+#
+# Output: a table sorted by total wall-clock time (slowest rule first),
+# followed by a grand-total row.
+
+set -e
+
+if [ $# -gt 1 ]; then
+	echo "usage: mk-timings-summary [file]" >&2
+	exit 1
+fi
+
+awk -F, '
+# skip the header line and any blank lines
+NR == 1 && $1 == "RULE" { next }
+NF < 4 { next }
+
+{
+	rule = $1
+	sec  = $2 + 0
+	ns   = $3 + 0
+
+	# accumulate per-rule totals (in nanoseconds to stay integer)
+	total_ns[rule] += sec * 1000000000 + ns
+	count[rule]++
+
+	# track insertion order so equal-time rules stay stable
+	if (!(rule in seen)) {
+		seen[rule] = 1
+		order[nrules++] = rule
+	}
+}
+
+END {
+	# bubble-sort indices by total_ns descending
+	for (i = 0; i < nrules; i++) {
+		for (j = i + 1; j < nrules; j++) {
+			if (total_ns[order[j]] > total_ns[order[i]]) {
+				tmp = order[i]
+				order[i] = order[j]
+				order[j] = tmp
+			}
+		}
+	}
+
+	# find the longest rule name for column alignment
+	maxlen = length("RULE")
+	for (i = 0; i < nrules; i++) {
+		if (length(order[i]) > maxlen)
+			maxlen = length(order[i])
+	}
+
+	fmt = "%-" maxlen "s  %10s  %6s  %s\n"
+
+	printf fmt, "RULE", "TIME (s)", "CMDS", "TIME (s.ns)"
+
+	sep = ""
+	for (i = 0; i < maxlen; i++) sep = sep "-"
+	printf "%s  %s  %s  %s\n", sep, "----------", "------", "-----------"
+
+	grand = 0
+	grand_cmds = 0
+	for (i = 0; i < nrules; i++) {
+		r  = order[i]
+		ns = total_ns[r]
+		grand += ns
+		grand_cmds += count[r]
+		s  = int(ns / 1000000000)
+		n  = ns % 1000000000
+		printf fmt, r, s + n / 1000000000, count[r], \
+		       sprintf("%d.%09d", s, n)
+	}
+
+	printf "%s  %s  %s  %s\n", sep, "----------", "------", "-----------"
+
+	s = int(grand / 1000000000)
+	n = grand % 1000000000
+	printf fmt, "TOTAL", s + n / 1000000000, grand_cmds, \
+	       sprintf("%d.%09d", s, n)
+}
+' "${1:-/dev/stdin}"

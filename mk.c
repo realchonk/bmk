@@ -82,6 +82,7 @@ extern int errno;
 static const char *cpath, *objdir = NULL;
 static int verbose = 0, cline = 0, conterr = 0;
 static const struct timespec time_zero;
+static FILE *timings_file = NULL;
 
 #if HAVE_DESIGNATED_DECLARATORS
 # define FIELD(name, value) .name = value
@@ -649,6 +650,21 @@ const struct timespec *a, *b;
 	if (a->tv_nsec != b->tv_nsec)
 		return a->tv_nsec < b->tv_nsec ? -1 : 1;
 	return 0;
+}
+
+struct timespec
+tv_sub (a, b)
+const struct timespec *a, *b;
+{
+	struct timespec r;
+
+	r.tv_sec = a->tv_sec - b->tv_sec;
+	r.tv_nsec = a->tv_nsec - b->tv_nsec;
+	if (r.tv_nsec < 0) {
+		r.tv_sec -= 1;
+		r.tv_nsec += 1000000000L;
+	}
+	return r;
 }
 
 #if NDEBUG
@@ -1604,9 +1620,10 @@ const char *cmd, *rule;
 struct expand_ctx *ctx;
 {
 	char *shell, *ecmd, *args[5];
+	struct timespec t_before, t_after, t_elapsed;
 	pid_t pid;
 	mk_wait_t ws;
-	int i = 0, q = 0, ign = 0;
+	int i = 0, q = 0, ign = 0, rc;
 
 	if (*cmd == '@') {
 		q = 1;
@@ -1630,6 +1647,7 @@ struct expand_ctx *ctx;
 		);
 	}
 
+	t_before = now ();
 	pid = fork ();
 	if (pid < 0)
 		err (1, "fork()");
@@ -1651,18 +1669,33 @@ struct expand_ctx *ctx;
 		err (127, "exec('%s')", ecmd);
 	} else {
 		free (shell);
-		free (ecmd);
 		if (wait (&ws) != pid) {
+			free (ecmd);
 			warn ("wait()");
 			return 254;
 		}
+
+		t_after = now ();
+		t_elapsed = tv_sub (&t_after, &t_before);
+
+		if (timings_file != NULL) {
+			fprintf (timings_file, "%s,%ld,%ld,%s\n",
+				rule != NULL ? rule : "",
+				(long)t_elapsed.tv_sec,
+				t_elapsed.tv_nsec,
+				ecmd
+			);
+		}
+
+		free (ecmd);
 
 		if (!WIFEXITED (ws)) {
 			warnx ("%d: process didn't exit", (int)pid);
 			return 255;
 		}
 
-		return ign ? 0 : WEXITSTATUS (ws);
+		rc = ign ? 0 : WEXITSTATUS (ws);
+		return rc;
 	}
 }
 
@@ -3618,6 +3651,7 @@ struct scope *sc;
 	fputs ("  -s                          - do not echo commands\n", stderr);
 	fputs ("  -k                          - continue processing after errors are encountered\n", stderr);
 	fputs ("  -S                          - stop processing when errors are encountered (default)\n", stderr);
+	fputs ("  -t file                     - write build timings to file (- for stdout)\n", stderr);
 	fputs ("  -v                          - verbose output\n", stderr);
 
 	if (sc != NULL) {
@@ -3731,7 +3765,7 @@ struct scope *sc;
 int
 usage (uc)
 {
-	fprintf (stderr, "%s: %s [-hkpsSv] [-C dir] [-f makefile] [-o objdir] [-V var] [target...]\n", uc ? "USAGE" : "usage", m_make.value);
+	fprintf (stderr, "%s: %s [-hkpsSv] [-C dir] [-f makefile] [-o objdir] [-t file] [-V var] [target...]\n", uc ? "USAGE" : "usage", m_make.value);
 	return 1;
 }
 
@@ -3770,13 +3804,13 @@ char **argv;
 	struct path *path;
 	struct macro *m;
 	struct build b;
-	char *s, *cd = NULL, *makefile = MAKEFILE, *V = NULL, *odir = NULL;
+	char *s, *cd = NULL, *makefile = MAKEFILE, *V = NULL, *odir = NULL, *tfile = NULL;
 	int i, option, pr = 0, n = 0, dohelp = 0;
 
 	m_dmake.value = m_make.value = argv[0];
 
 	str_new (&cmdline);
-	while ((option = getopt (argc, argv, "hpsvkSC:f:V:o:")) != -1) {
+	while ((option = getopt (argc, argv, "hpsvkSC:f:V:o:t:")) != -1) {
 		switch (option) {
 		case 'h':
 			dohelp = 1;
@@ -3811,6 +3845,9 @@ char **argv;
 		case 'S':
 			conterr = 0;
 			break;
+		case 't':
+			tfile = optarg;
+			break;
 		case '?':
 			return usage (0);
 		default:
@@ -3826,6 +3863,17 @@ char **argv;
 
 		if (verbose >= 3)
 			printf ("objdir = '%s'\n", objdir);
+	}
+
+	if (tfile != NULL) {
+		if (strcmp (tfile, "-") == 0) {
+			timings_file = stdout;
+		} else {
+			timings_file = fopen (tfile, "w");
+			if (timings_file == NULL)
+				err (1, "fopen('%s')", tfile);
+			fputs ("RULE,TIME_S,TIME_NS,COMMAND\n", timings_file);
+		}
 	}
 
 	if (cd != NULL && chdir (cd) != 0)

@@ -41,6 +41,7 @@ distclean: clean
 install: mk mk.1
 	mkdir -p ${DESTDIR}${BINDIR} ${DESTDIR}${MANDIR}/man1
 	cp -f mk ${DESTDIR}${BINDIR}/
+	cp -f mk-timings-summary ${DESTDIR}${BINDIR}/
 	cp -f mk.1 ${DESTDIR}${MANDIR}/man1/
 
 mk: mk.c compats.c mk.h

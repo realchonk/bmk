@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- New `mk-timings-summary` script that reads a timings file produced by
+  `-t` and prints a table of total wall-clock time and command count per
+  rule, sorted slowest-first, with a grand-total row. Accepts a filename
+  argument or reads from standard input. Installed alongside `mk`.
+- New `-t file` option to record build timings. After each shell command
+  completes, a line of the form `RULE,COMMAND,TIME_S,TIME_NS` is appended
+  to `file`. Using `-t -` writes to standard output. When `file` is a
+  regular file (not `-`), a CSV header line is written first. `COMMAND`
+  is the last field so that embedded commas do not break parsing.
 
 ### Fixed
 - `$@` is now set to an empty string (instead of being left as a null
