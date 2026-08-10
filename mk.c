@@ -3245,6 +3245,7 @@ const struct path *prefix;
 	struct cbuilt *cb;
 	struct build b;
 	const char *bname;
+	char *scoped_rule = NULL;
 	char **s;
 	int ec, rc;
 
@@ -3400,6 +3401,15 @@ const struct path *prefix;
 			}
 		}
 
+		/* build the label used in [scope] $ ... output */
+		if (name != NULL && *name != '\0') {
+			char *tmp = xstrcat (sc->name, "/");
+			scoped_rule = xstrcat (tmp, name);
+			free (tmp);
+		} else {
+			scoped_rule = strdup (sc->name);
+		}
+
 		f = sc_custom (sc)->test;
 		if (f != NULL) {
 			assert (f->inf == NULL);
@@ -3408,13 +3418,17 @@ const struct path *prefix;
 			for (dep = f->dhead; dep != NULL; dep = dep->next) {
 				if (build_dir (&b, sc->parent, dep->path, new_prefix) != 0) {
 					ec = 1;
-					if (!conterr)
+					if (!conterr) {
+						free (scoped_rule);
 						return ec;
+					}
 				}
 			}
 
-			if (ec != 0)
+			if (ec != 0) {
+				free (scoped_rule);
 				return ec;
+			}
 
 			ectx_init (
 				/* ctx    */ &ctx, 
@@ -3426,7 +3440,7 @@ const struct path *prefix;
 			
 			needs_update = 0;
 			for (s = f->rule->code; *s != NULL; ++s) {
-				if (runcom (sc->parent, new_prefix, *s, &ctx, name) != 0) {
+				if (runcom (sc->parent, new_prefix, *s, &ctx, scoped_rule) != 0) {
 					needs_update = 1;
 					break;
 				}
@@ -3442,6 +3456,7 @@ const struct path *prefix;
 				build_init (out, time_zero, NULL, 0);
 			}
 			custom_remember (sc, name, out->t, out->obj);
+			free (scoped_rule);
 			return 0;
 		}
 
@@ -3463,16 +3478,21 @@ const struct path *prefix;
 		for (dep = f->dhead; dep != NULL; dep = dep->next) {
 			if (build_dir (&b, sc->parent, dep->path, new_prefix) != 0) {
 				ec = 1;
-				if (!conterr)
+				if (!conterr) {
+					free (scoped_rule);
 					return ec;
+				}
 			}
 		}
-		if (ec != 0)
+		if (ec != 0) {
+			free (scoped_rule);
 			return ec;
+		}
 
 		for (s = f->rule->code; *s != NULL; ++s) {
-			if ((rc = runcom (sc->parent, new_prefix, *s, &ctx, name)) != 0) {
+			if ((rc = runcom (sc->parent, new_prefix, *s, &ctx, scoped_rule)) != 0) {
 				fprintf (stderr, "%s: command failed with %d: %s\n", sc_path_str (sc->parent), rc, *s);
+				free (scoped_rule);
 				return 1;
 			}
 		}
@@ -3484,6 +3504,7 @@ const struct path *prefix;
 			build_init (out, now (), NULL, 0);
 		}
 		custom_remember (sc, name, out->t, out->obj);
+		free (scoped_rule);
 		return 0;
 	}
 	
