@@ -5,7 +5,7 @@ All notable changes to `bmk` (the `mk` binary) are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.4]
 
 ### Added
 - New `mk-timings-summary` script that reads a timings file produced by
@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to `file`. Using `-t -` writes to standard output. When `file` is a
   regular file (not `-`), a CSV header line is written first. `COMMAND`
   is the last field so that embedded commas do not break parsing.
+
+### Changed
+- The `[scope] $ ...` command echo and the `-t` timings `RULE` field now
+  print the full scope-prefixed path (e.g. `sub/clean`) for recipes run
+  inside `.FOREIGN:` subdirectories, instead of the bare target name.
 
 ### Fixed
 - `$@` is now set to an empty string (instead of being left as a null
@@ -39,6 +44,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   declares its own `struct file` and collided with bmk's internal type.
 - Replaced all `#elif` directives with stacked `#if`/`#endif` blocks for
   compatibility with primitive preprocessors (2.11BSD, XENIX).
+- Replaced the hand-rolled intrusive linked lists with BSD `queue(3)`
+  macros (`TAILQ_*`, `SLIST_*`). A bundled `compat-sys_queue.h` (derived
+  from OpenBSD's `<sys/queue.h>`) is used when the system header is
+  missing or incomplete (glibc's lacks `TAILQ_FOREACH_SAFE` /
+  `TAILQ_CONCAT`); a new `HAVE_SYS_QUEUE_H` configure probe selects
+  between them. The `XSIMPLEQ_*` family is omitted because it relies on
+  `__typeof`, a GCC extension absent from the K&R target compilers.
+- Added an include guard to `compats.h`; without it, `mk.h` including
+  `compats.h` caused a double definition of `struct timespec` on 4.3BSD.
 
 ## [0.3] - 2026-08-06
 
@@ -115,7 +129,8 @@ Initial release.
 - Extreme portability: builds from modern OpenBSD/macOS down to 2.11BSD,
   4.3BSD, XENIX, and Minix.
 
-[Unreleased]: https://github.com/realchonk/bmk/compare/0.3...HEAD
+[Unreleased]: https://github.com/realchonk/bmk/compare/0.4...HEAD
+[0.4]: https://github.com/realchonk/bmk/compare/0.3...0.4
 [0.3]: https://github.com/realchonk/bmk/compare/0.2...0.3
 [0.2]: https://github.com/realchonk/bmk/compare/0.1...0.2
 [0.1]: https://github.com/realchonk/bmk/releases/tag/0.1

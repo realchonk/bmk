@@ -6,7 +6,7 @@ MANDIR='${PREFIX}/man'
 CONFIG_SHELL='sh'
 CONFIG_MAKEFILE='Mkfile'
 
-BMK_VERSION="0.3"
+BMK_VERSION="0.4"
 BMK_EMAIL="benni@stuerz.xyz"
 
 build_alias=
