@@ -324,6 +324,40 @@ EOF
 done
 
 echo >>config.h
+echo "/* sys/queue.h - test for a complete OpenBSD-compatible implementation */" >>config.h
+echo 'checking for complete <sys/queue.h>...' >>config.log
+echo -n 'checking for complete <sys/queue.h>... '
+cat >conftest.c <<EOF
+#include <sys/queue.h>
+
+struct foo {
+	int bar;
+	TAILQ_ENTRY(foo) entries;
+};
+
+TAILQ_HEAD(fooq, foo);
+
+int main ()
+{
+	struct fooq foo_q, bar_q;
+	struct foo *p, *tmp;
+	TAILQ_INIT(&foo_q);
+	TAILQ_INIT(&bar_q);
+	TAILQ_FOREACH_SAFE(p, &foo_q, entries, tmp)
+		p->bar = 0;
+	TAILQ_CONCAT(&foo_q, &bar_q, entries);
+	return 0;
+}
+EOF
+if eval "$try_compile"; then
+	echo yes
+	echo '#define HAVE_SYS_QUEUE_H 1' >>config.h
+else
+	echo no
+	echo '#undef HAVE_SYS_QUEUE_H' >>config.h
+fi
+
+echo >>config.h
 echo "/* Functions */" >>config.h
 funcs='
 basename

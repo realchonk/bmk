@@ -79,7 +79,7 @@ exec mk distclean
 # so the remote side can always do "cd mk".
 set srcdir [file tail [pwd]]
 
-set files {mk.[1ch] compats.[ch] configure Mkfile}
+set files {mk.[1ch] compats.[ch] compat-sys_queue.h configure Mkfile}
 set globbed [lmap f $files {glob "$f"}]
 set prefixed [lmap f [join $globbed] {expr {"mk/$f"}}]
 

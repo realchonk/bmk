@@ -1,3 +1,6 @@
+#ifndef COMPATS_H
+#define COMPATS_H
+
 #if __STDC__ || HAVE_VOID_PTR
 # define void_t void
 #else
@@ -131,3 +134,5 @@ extern void_t *calloc ();
 extern void_t *realloc ();
 extern char *getenv ();
 #endif
+
+#endif /* COMPATS_H */

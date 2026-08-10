@@ -56,6 +56,11 @@
 #if NEED_TIME_H
 # include <time.h>
 #endif
+#if HAVE_SYS_QUEUE_H
+# include <sys/queue.h>
+#else
+# include "compat-sys_queue.h"
+#endif
 #include "compats.h"
 #include "mk.h"
 
@@ -90,41 +95,51 @@ static FILE *timings_file = NULL;
 # define FIELD(name, value) value
 #endif
 
+/*
+ * The global macro list is a plain singly-linked chain via the `next` SLIST
+ * entry.  We maintain it as a raw pointer (globals) rather than a SLIST_HEAD
+ * because the static initialisers below pre-link the chain at compile time,
+ * which is only possible without the SLIST_HEAD wrapper struct.
+ *
+ * Note: SLIST_ENTRY embeds a struct with a single `sle_next` pointer.
+ * For static initialisers we must initialise that inner struct directly.
+ * The FIELD() macro abstracts C99 designated initialisers.
+ */
 static struct macro m_shell = {
-	FIELD (next, NULL),
-	FIELD (enext, NULL),
+	FIELD (next, {NULL}),
+	FIELD (enext, {NULL}),
 	FIELD (prepend, NULL),
 	FIELD (name, "SHELL"),
 	FIELD (value, SHELL),
 	FIELD (help, NULL),
 	FIELD (lazy, 0),
 }, m_make = {
-	FIELD (next, &m_shell),
-	FIELD (enext, &m_shell),
+	FIELD (next, {&m_shell}),
+	FIELD (enext, {NULL}),
 	FIELD (prepend, NULL),
 	FIELD (name, "MAKE"),
 	FIELD (value, NULL),
 	FIELD (help, NULL),
 	FIELD (lazy, 0),
 }, m_dmake = {
-	FIELD (next, &m_make),
-	FIELD (enext, &m_make),
+	FIELD (next, {&m_make}),
+	FIELD (enext, {NULL}),
 	FIELD (prepend, NULL),
 	FIELD (name, ".MAKE"),
 	FIELD (value, NULL),
 	FIELD (help, NULL),
 	FIELD (lazy, 0),
 }, m_makeflags = {
-	FIELD (next, &m_dmake),
-	FIELD (enext, &m_dmake),
+	FIELD (next, {&m_dmake}),
+	FIELD (enext, {NULL}),
 	FIELD (prepend, NULL),
 	FIELD (name, "MAKEFLAGS"),
 	FIELD (value, NULL),
 	FIELD (help, NULL),
 	FIELD (lazy, 0),
 }, m_dmakeflags = {
-	FIELD (next, &m_makeflags),
-	FIELD (enext, &m_makeflags),
+	FIELD (next, {&m_makeflags}),
+	FIELD (enext, {NULL}),
 	FIELD (prepend, NULL),
 	FIELD (name, ".MAKEFLAGS"),
 	FIELD (value, NULL),
@@ -132,6 +147,10 @@ static struct macro m_shell = {
 	FIELD (lazy, 0),
 };
 
+/*
+ * globals: head of the global macro chain (searched last by find_macro).
+ * Linked via the `next` SLIST_ENTRY field.
+ */
 static struct macro *globals = &m_dmakeflags;
 
 /* STRING BUFFER */
@@ -763,11 +782,11 @@ const char *name;
 	if (sc == NULL)
 		return NULL;
 
-	for (m = sc_dir (sc)->emacros; m != NULL; m = m->enext) {
+	SLIST_FOREACH (m, &sc_dir (sc)->emacros, enext) {
 		if (strcmp (m->name, name) == 0)
 			return m;
 	}
-	
+
 	return find_emacro (sc->parent, name);
 }
 
@@ -778,7 +797,7 @@ const char *name;
 {
 	struct macro *m;
 
-	for (m = sc_dir (sc)->macros; m != NULL; m = m->next) {
+	SLIST_FOREACH (m, &sc_dir (sc)->macros, next) {
 		if (strcmp (m->name, name) == 0)
 			return m;
 	}
@@ -787,7 +806,7 @@ const char *name;
 	if (m != NULL)
 		return m;
 
-	for (m = globals; m != NULL; m = m->next) {
+	for (m = globals; m != NULL; m = SLIST_NEXT (m, next)) {
 		if (strcmp (m->name, name) == 0)
 			return m;
 	}
@@ -802,7 +821,7 @@ const char *name;
 {
 	struct template *tm;
 
-	for (tm = sc_dir (sc)->templates; tm != NULL; tm = tm->next) {
+	SLIST_FOREACH (tm, &sc_dir (sc)->templates, next) {
 		if (strcmp (tm->name, name) == 0)
 			return tm;
 	}
@@ -817,7 +836,12 @@ const char *name;
 {
 	struct file *f;
 
-	for (f = dir->ftail; f != NULL; f = f->prev) {
+	/*
+	 * Walk backwards (tail-to-head) so that the most recently added
+	 * definition of a target wins, matching the old behaviour.
+	 * TAILQ_FOREACH_REVERSE requires the head type name.
+	 */
+	TAILQ_FOREACH_REVERSE (f, &dir->files, file_list, link) {
 		if (strcmp (name, f->name) == 0)
 			return f;
 	}
@@ -832,7 +856,7 @@ const char *name;
 {
 	struct scope *sub;
 
-	for (sub = sc_dir (sc)->subdirs; sub != NULL; sub = sub->next) {
+	SLIST_FOREACH (sub, &sc_dir (sc)->subdirs, next) {
 		if (strcmp (sub->name, name) == 0)
 			return sub;
 	}
@@ -903,8 +927,8 @@ struct file *f;
 	}
 
 	ctx->scope = sc;
-	ctx->deps  = f->dhead;
-	ctx->infdeps = f->inf != NULL ? f->inf->dhead : NULL;
+	ctx->deps  = TAILQ_FIRST (&f->deps);
+	ctx->infdeps = f->inf != NULL ? TAILQ_FIRST (&f->inf->deps) : NULL;
 	ctx->depth = 0;
 }
 
@@ -1008,12 +1032,12 @@ struct expand_ctx *ctx;
 			errx (1, "%s: invalid scope type", sc_path_str (sc));
 		}
 
-		sub = sc_dir (sc)->subdirs;
+		sub = SLIST_FIRST (&sc_dir (sc)->subdirs);
 		if (sub == NULL)
 			return;
 
 		str_puts (out, sub->name);
-		for (sub = sub->next; sub != NULL; sub = sub->next) {
+		for (sub = SLIST_NEXT (sub, next); sub != NULL; sub = SLIST_NEXT (sub, next)) {
 			str_putc (out, ' ');
 			str_puts (out, sub->name);
 		}
@@ -1021,12 +1045,12 @@ struct expand_ctx *ctx;
 		if (sc->type != SC_DIR)
 			goto invsc;
 
-		m = sc_dir (sc)->emacros;
+		m = SLIST_FIRST (&sc_dir (sc)->emacros);
 		if (m == NULL)
 			return;
 
 		pr_export (out, sc, prefix, m, ctx);
-		for (m = m->enext; m != NULL; m = m->enext) {
+		for (m = SLIST_NEXT (m, enext); m != NULL; m = SLIST_NEXT (m, enext)) {
 			str_putc (out, ' ');
 			pr_export (out, sc, prefix, m, ctx);
 		}
@@ -1055,11 +1079,11 @@ struct expand_ctx *ctx;
 		if (ctx->target == NULL)
 			errx (1, "%s: cannot use $^ or ${.ALLSRC} here", sc_path_str (sc));
 
-		for (dep = ctx->deps; dep != NULL; dep = dep->next) {
+		for (dep = ctx->deps; dep != NULL; dep = TAILQ_NEXT (dep, link)) {
 			str_putc (out, ' ');
 			dep_write (out, sc, dep);
 		}
-		for (dep = ctx->infdeps; dep != NULL; dep = dep->next) {
+		for (dep = ctx->infdeps; dep != NULL; dep = TAILQ_NEXT (dep, link)) {
 			str_putc (out, ' ');
 			dep_write (out, sc, dep);
 		}
@@ -2032,13 +2056,12 @@ const char *name;
 	pdir = sc_dir (parent);
 
 	sub = new (struct scope);
-	sub->next = pdir->subdirs;
 	sub->type = SC_DIR;
 	sub->name = strdup (name);
 	sub->parent = parent;
 	sub->makefile = NULL;
 	sub->created = 0;
-	pdir->subdirs = sub;
+	SLIST_INSERT_HEAD (&pdir->subdirs, sub, next);
 
 	return sub;
 }
@@ -2064,8 +2087,9 @@ struct macro *prepend;
 	}
 
 	m = new (struct macro);
-	m->next = NULL;
-	m->enext = NULL;
+	/* SLIST_ENTRY fields are zeroed by calloc; set explicitly for clarity */
+	m->next.sle_next = NULL;
+	m->enext.sle_next = NULL;
 	m->prepend = prepend;
 	m->name = name;
 	m->value = value;
@@ -2076,11 +2100,11 @@ struct macro *prepend;
 }
 
 struct file *
-new_file (name, rule, time, dhead, dtail, help, inf, obj)
+new_file (name, rule, time, deps, help, inf, obj)
 char *name, *help;
 struct rule *rule;
 struct timespec time;
-struct dep *dhead, *dtail;
+struct dep_list *deps;
 struct inference *inf;
 {
 	struct file *f;
@@ -2088,11 +2112,13 @@ struct inference *inf;
 	assert (name != NULL);
 
 	f = new (struct file);
-	f->next = f->prev = NULL;
+	/* TAILQ_ENTRY is zeroed by calloc; initialise the embedded head */
+	if (deps != NULL)
+		f->deps = *deps;
+	else
+		TAILQ_INIT (&f->deps);
 	f->name = name;
 	f->rule = rule;
-	f->dhead = dhead;
-	f->dtail = dtail;
 	f->mtime = time;
 	f->help = help;
 	f->inf = inf;
@@ -2111,34 +2137,29 @@ struct path *path;
 	assert (path != NULL);
 
 	d = new (struct dep);
-	d->next = d->prev = NULL;
 	d->path = path;
+	/* link.tqe_next / tqe_prev are zeroed by calloc */
 
 	return d;
 }
 
-struct dep *
-dup_deps (src, out_tail)
-struct dep *src;
-struct dep **out_tail;
+/*
+ * dup_deps: copy a dep_list into a fresh dep_list.
+ * Returns nothing; result is in *out.
+ */
+void
+dup_deps (src, out)
+struct dep_list *src;
+struct dep_list *out;
 {
-	struct dep *head, *tail, *d;
+	struct dep *s, *d;
 
-	head = tail = NULL;
-	for (; src != NULL; src = src->next) {
-		d = new_dep (src->path);
-		d->obj = src->obj;
-		if (head != NULL) {
-			d->prev = tail;
-			tail->next = d;
-		} else {
-			head = d;
-		}
-		tail = d;
+	TAILQ_INIT (out);
+	TAILQ_FOREACH (s, src, link) {
+		d = new_dep (s->path);
+		d->obj = s->obj;
+		TAILQ_INSERT_TAIL (out, d, link);
 	}
-
-	*out_tail = tail;
-	return head;
 }
 
 struct dep *
@@ -2162,32 +2183,20 @@ dir_add_file (dir, f)
 struct directory *dir;
 struct file *f;
 {
-	assert (f->next == NULL && f->prev == NULL);
-
-	if (dir->fhead != NULL) {
-		f->prev = dir->ftail;
-		dir->ftail->next = f;
-	} else {
-		dir->fhead = f;
-	}
-	dir->ftail = f;
+	TAILQ_INSERT_TAIL (&dir->files, f, link);
 }
 
+/*
+ * file_add_deps: append dep_list src onto the end of file->deps.
+ * Ownership of elements in src is transferred to file->deps;
+ * src is left initialised-but-empty (TAILQ_INIT'd) afterwards.
+ */
 void
-file_add_deps (file, dhead, dtail)
+file_add_deps (file, src)
 struct file *file;
-struct dep *dhead, *dtail;
+struct dep_list *src;
 {
-	assert (dhead->prev == NULL);
-	assert (dtail->next == NULL);
-
-	if (file->dhead != NULL) {
-		dhead->prev = file->dtail;
-		file->dtail->next = dhead;
-	} else {
-		file->dhead = dhead;
-	}
-	file->dtail = dtail;
+	TAILQ_CONCAT (&file->deps, src, link);
 }
 
 void
@@ -2195,7 +2204,7 @@ file_add_dep (file, dep)
 struct file *file;
 struct dep *dep;
 {
-	file_add_deps (file, dep, dep);
+	TAILQ_INSERT_TAIL (&file->deps, dep, link);
 }
 
 void
@@ -2211,8 +2220,7 @@ int obj;
 	b->name = strdup (name != NULL ? name : "");
 	b->t = t;
 	b->obj = obj;
-	b->next = sc_custom (sc)->built;
-	sc_custom (sc)->built = b;
+	SLIST_INSERT_HEAD (&sc_custom (sc)->built, b, next);
 }
 
 char *
@@ -2284,8 +2292,8 @@ char *s;
 		cs = new (struct custom);
 		cs->test = NULL;
 		cs->exec = NULL;
-		cs->dhead = NULL;
-		cs->dtail = NULL;
+		TAILQ_INIT (&cs->deps);
+		SLIST_INIT (&cs->built);
 		sub->inner.custom = cs;
 	}
 }
@@ -2306,7 +2314,7 @@ char *s;
 			continue;
 
 		/* check if the macro is already exported */
-		for (m = sc_dir (sc)->emacros; m != NULL; m = m->enext) {
+		SLIST_FOREACH (m, &sc_dir (sc)->emacros, enext) {
 			if (strcmp (m->name, name) == 0)
 				goto cont; /* already exported */
 		}
@@ -2315,8 +2323,7 @@ char *s;
 		if (m == NULL)
 			errx (1, "%s:%d: no such macro: '%s'", cpath, cline, name);
 
-		m->enext = sc_dir (sc)->emacros;
-		sc_dir (sc)->emacros = m;
+		SLIST_INSERT_HEAD (&sc_dir (sc)->emacros, m, enext);
 
 	cont:;
 	}
@@ -2362,10 +2369,10 @@ struct file *f;
  * empty; if the caller supplied commands, we error out.
  */
 bool
-try_add_custom_deps (sc, name, dhead, dtail)
+try_add_custom_deps (sc, name, src)
 struct scope *sc;
 const char *name;
-struct dep *dhead, *dtail;
+struct dep_list *src;
 {
 	struct scope *sub;
 	struct custom *cs;
@@ -2374,17 +2381,11 @@ struct dep *dhead, *dtail;
 	if (sub == NULL || sub->type != SC_CUSTOM)
 		return false;
 
-	if (dhead == NULL)
+	if (TAILQ_EMPTY (src))
 		return true;
 
 	cs = sc_custom (sub);
-	if (cs->dhead != NULL) {
-		dhead->prev = cs->dtail;
-		cs->dtail->next = dhead;
-	} else {
-		cs->dhead = dhead;
-	}
-	cs->dtail = dtail;
+	TAILQ_CONCAT (&cs->deps, src, link);
 	return true;
 }
 
@@ -2419,18 +2420,18 @@ char *s, *t, *help;
 {
 	struct inference *inf;
 	struct filetime ft;
+	struct dep_list deps, cdeps;
 	struct rule *r;
 	struct file *f;
 	struct file **seen;
-	struct dep *cdhead, *cdtail;
-	struct dep *dep, *dhead, *dtail;
+	struct dep *dep;
 	char *u, *v, *p;
 	size_t i, nseen, cseen;
 	int flag;
 
 	r = new (struct rule);
 	r->code = NULL;
-	dhead = dtail = NULL;
+	TAILQ_INIT (&deps);
 
 	*t = '\0';
 
@@ -2439,16 +2440,9 @@ char *s, *t, *help;
 	while ((p = strsep (&v, " \t")) != NULL) {
 		if (*p == '\0')
 			continue;
-
 		dep = new_dep (parse_path (p));
-		if (dhead != NULL) {
-			dep->prev = dtail;
-			dtail->next = dep;
-		} else {
-			dhead = dep;
-		}
-		dtail = dep;
-	}	
+		TAILQ_INSERT_TAIL (&deps, dep, link);
+	}
 	free (u);
 
 	/* parse targets */
@@ -2457,22 +2451,20 @@ char *s, *t, *help;
 	if (is_inf (u)) {
 		p = strchr (u + 1, '.');
 		inf = new (struct inference);
-		inf->next = sc_dir (sc)->infs;
 		inf->rule = r;
-		inf->dhead = dhead;
-		inf->dtail = dtail;
+		inf->deps = deps;
 
 		if (p != NULL) {
 			*p = '\0';
 			inf->from = strdup (u);
 			*p = '.';
-			inf->to = strdup (p); 
+			inf->to = strdup (p);
 		} else {
 			inf->from = strdup (u);
 			inf->to = "";
 		}
 
-		sc_dir (sc)->infs = inf;
+		SLIST_INSERT_HEAD (&sc_dir (sc)->infs, inf, next);
 		flag = 1;
 	} else {
 		seen = NULL;
@@ -2496,22 +2488,21 @@ char *s, *t, *help;
 					continue;
 			}
 
-			cdhead = dup_deps (dhead, &cdtail);
+			dup_deps (&deps, &cdeps);
 
-			if (f == NULL && try_add_custom_deps (sc, p, cdhead, cdtail)) {
+			if (f == NULL && try_add_custom_deps (sc, p, &cdeps)) {
 				flag = 1;
 				continue;
 			}
 
 			if (f == NULL) {
 				get_mtime (&ft, sc, dir, p);
-					
+
 				f = new_file (
 					/* name */ strdup (p),
 					/* rule */ r,
 					/* time */ ft.t,
-					/* dhead*/ cdhead,
-					/* dtail*/ cdtail,
+					/* deps */ &cdeps,
 					/* help */ help,
 					/* inf  */ NULL,
 					/* obj  */ ft.obj
@@ -2524,8 +2515,8 @@ char *s, *t, *help;
 				if (f->help == NULL)
 					f->help = help;
 
-				if (cdhead != NULL)
-					file_add_deps (f, cdhead, cdtail);
+				if (!TAILQ_EMPTY (&cdeps))
+					file_add_deps (f, &cdeps);
 			}
 
 			if (nseen == cseen) {
@@ -2599,8 +2590,7 @@ char *s, *t, *help;
 		/* lazy  */ lazy,
 		/*prepend*/ prepend
 	);
-	m->next = sc_dir (sc)->macros;
-	sc_dir (sc)->macros = m;
+	SLIST_INSERT_HEAD (&sc_dir (sc)->macros, m, next);
 }
 
 
@@ -2807,7 +2797,6 @@ FILE *file;
 			str_new (&text);
 
 			tm = new (struct template);
-			tm->next = sc_dir (sc)->templates;
 			tm->name = strdup (strip_comment (t));
 
 			for (free (s); (s = readline (file, &cline)) != NULL; free (s)) {
@@ -2820,7 +2809,7 @@ FILE *file;
 
 			if (run) {
 				tm->text = str_release (&text);
-				sc_dir (sc)->templates = tm;
+				SLIST_INSERT_HEAD (&sc_dir (sc)->templates, tm, next);
 			} else {
 				free (tm);
 				str_free (&text);
@@ -2925,9 +2914,12 @@ char *path;
 	if (file == NULL) {
 		/* err (1, "fopen(\"%s\")", path); */
 		dirx = new (struct directory);
-		dirx->subdirs = NULL;
-		dirx->fhead = NULL;
-		dirx->ftail = NULL;
+		SLIST_INIT (&dirx->subdirs);
+		TAILQ_INIT (&dirx->files);
+		SLIST_INIT (&dirx->macros);
+		SLIST_INIT (&dirx->emacros);
+		SLIST_INIT (&dirx->infs);
+		SLIST_INIT (&dirx->templates);
 		dirx->done = 0;
 		sc->inner.dir = dirx;
 		return;
@@ -2935,9 +2927,12 @@ char *path;
 
 	if (sc->inner.dir == NULL) {
 		dirx = new (struct directory);
-		dirx->subdirs = NULL;
-		dirx->fhead = NULL;
-		dirx->ftail = NULL;
+		SLIST_INIT (&dirx->subdirs);
+		TAILQ_INIT (&dirx->files);
+		SLIST_INIT (&dirx->macros);
+		SLIST_INIT (&dirx->emacros);
+		SLIST_INIT (&dirx->infs);
+		SLIST_INIT (&dirx->templates);
 		dirx->done = 0;
 		sc->inner.dir = dirx;
 	} else if (sc_dir (sc)->done) {
@@ -2990,7 +2985,7 @@ char *makefile;
 		if (parent->type != SC_DIR)
 			errx (1, "%s: invalid parent type", path_to_str (mfpath));
 
-		for (sc = sc_dir (parent)->subdirs; sc != NULL; sc = sc->next) {
+		SLIST_FOREACH (sc, &sc_dir (parent)->subdirs, next) {
 			if (strcmp (sc->name, name) == 0) {
 				if (sc->type != SC_DIR)
 					errx (1, "%s: invalid type", path_to_str (mfpath));
@@ -3064,18 +3059,21 @@ const char *name;
 	struct file *f;
 	struct dep *dep;
 
-	dep = new_dep_name (replace_suffix (name, inf->from));
-
-	f = new_file (
-		/* name */ strdup (name),
-		/* rule */ inf->rule,
-		/* time */ time_zero,
-		/* deps */ dep,
-		/* dtail*/ dep,
-		/* help */ NULL,
-		/* inf  */ inf,
-		/* obj  */ 0
-	);
+	{
+		struct dep_list ideps;
+		dep = new_dep_name (replace_suffix (name, inf->from));
+		TAILQ_INIT (&ideps);
+		TAILQ_INSERT_TAIL (&ideps, dep, link);
+		f = new_file (
+			/* name */ strdup (name),
+			/* rule */ inf->rule,
+			/* time */ time_zero,
+			/* deps */ &ideps,
+			/* help */ NULL,
+			/* inf  */ inf,
+			/* obj  */ 0
+		);
+	}
 	dir_add_file (sc_dir (sc), f);
 
 	return f;
@@ -3096,11 +3094,7 @@ struct inference *inf;
 	dep = new_dep_name (replace_suffix (f->name, inf->from));
 
 	/* prepend dependency to file */
-	if (f->dhead != NULL) {
-		dep->next = f->dhead;
-		f->dhead->prev = dep;
-	}
-	f->dhead = dep;
+	TAILQ_INSERT_HEAD (&f->deps, dep, link);
 	f->inf = inf;
 	f->rule = inf->rule;
 }
@@ -3125,7 +3119,8 @@ const char *name;
 		base[ext - name] = '\0';
 	}
 
-	for (inf = sc_dir (sc)->infs; inf != NULL; inf = inf->next) {
+	inf = NULL;
+	SLIST_FOREACH (inf, &sc_dir (sc)->infs, next) {
 		if (strcmp (inf->to, ext) == 0) {
 			sn = xstrcat (base, inf->from);
 			sf = find_file (sc_dir (sc), sn);
@@ -3164,7 +3159,6 @@ const char *name;
 		/* rule */ NULL,
 		/* time */ ft.t,
 		/* deps */ NULL,
-		/* dtail*/ NULL,
 		/* help */ NULL,
 		/* inf  */ NULL,
 		/* obj  */ ft.obj
@@ -3194,9 +3188,9 @@ struct file *f;
 }
 
 int
-build_deps (sc, dhead, prefix, mt, maxt, needs_update)
+build_deps (sc, deps, prefix, mt, maxt, needs_update)
 struct scope *sc;
-struct dep *dhead;
+struct dep_list *deps;
 const struct path *prefix;
 struct timespec *mt, *maxt;
 int *needs_update;
@@ -3206,7 +3200,7 @@ int *needs_update;
 	struct dep *dep;
 	int ec = 0;
 
-	for (dep = dhead; dep != NULL; dep = dep->next) {
+	TAILQ_FOREACH (dep, deps, link) {
 		if (build_dir (&b, sc, dep->path, prefix) == 0) {
 			dep->obj = b.obj;
 
@@ -3296,7 +3290,7 @@ const struct path *prefix;
 				f->obj = ft.obj;
 			}
 		} else {
-			f = sc_dir (sc)->fhead;
+			f = TAILQ_FIRST (&sc_dir (sc)->files);
 			if (f == NULL)
 				errx (1, "%s: nothing to build", sc_path_str (sc));
 		}
@@ -3332,7 +3326,7 @@ const struct path *prefix;
 			return 1;
 
 		/* build dependencies and record timestamps */
-		if (build_deps (sc, f->dhead, prefix, &f->mtime, &maxt, &needs_update) != 0) {
+		if (build_deps (sc, &f->deps, prefix, &f->mtime, &maxt, &needs_update) != 0) {
 			f->err = 1;
 			if (!conterr)
 				return 1;
@@ -3340,7 +3334,7 @@ const struct path *prefix;
 
 		/* build dependencies from inference rule */
 		if (f->inf != NULL) {
-			if (build_deps (sc, f->inf->dhead, prefix, &f->mtime, &maxt, &needs_update) != 0) {
+			if (build_deps (sc, &f->inf->deps, prefix, &f->mtime, &maxt, &needs_update) != 0) {
 				f->err = 1;
 				if (!conterr)
 					return 1;
@@ -3382,7 +3376,7 @@ const struct path *prefix;
 		return 0;
 	case SC_CUSTOM:
 		bname = name != NULL ? name : "";
-		for (cb = sc_custom (sc)->built; cb != NULL; cb = cb->next) {
+		SLIST_FOREACH (cb, &sc_custom (sc)->built, next) {
 			if (strcmp (cb->name, bname) == 0) {
 				build_init (out, cb->t, NULL, cb->obj);
 				return 0;
@@ -3394,7 +3388,7 @@ const struct path *prefix;
 
 
 		/* build ordering deps declared on the bare subdir name */
-		for (dep = sc_custom (sc)->dhead; dep != NULL; dep = dep->next) {
+		TAILQ_FOREACH (dep, &sc_custom (sc)->deps, link) {
 			if (build_dir (&b, sc->parent, dep->path, new_prefix) != 0) {
 				free (new_prefix);
 				return 1;
@@ -3415,7 +3409,7 @@ const struct path *prefix;
 			assert (f->inf == NULL);
 
 			ec = 0;
-			for (dep = f->dhead; dep != NULL; dep = dep->next) {
+			TAILQ_FOREACH (dep, &f->deps, link) {
 				if (build_dir (&b, sc->parent, dep->path, new_prefix) != 0) {
 					ec = 1;
 					if (!conterr) {
@@ -3431,13 +3425,13 @@ const struct path *prefix;
 			}
 
 			ectx_init (
-				/* ctx    */ &ctx, 
+				/* ctx    */ &ctx,
 				/* sc     */ sc,
 				/* target */ strdup (name != NULL ? name : ""),
-				/* deps   */ f->dhead,
+				/* deps   */ TAILQ_FIRST (&f->deps),
 				/* infdeps*/ NULL
 			);
-			
+
 			needs_update = 0;
 			for (s = f->rule->code; *s != NULL; ++s) {
 				if (runcom (sc->parent, new_prefix, *s, &ctx, scoped_rule) != 0) {
@@ -3467,15 +3461,15 @@ const struct path *prefix;
 		assert (f->inf == NULL);
 
 		ectx_init (
-			/* ctx    */ &ctx, 
+			/* ctx    */ &ctx,
 			/* sc     */ sc,
 			/* target */ strdup (name != NULL ? name : ""),
-			/* deps   */ f->dhead,
+			/* deps   */ TAILQ_FIRST (&f->deps),
 			/* infdeps*/ NULL
 		);
 
 		ec = 0;
-		for (dep = f->dhead; dep != NULL; dep = dep->next) {
+		TAILQ_FOREACH (dep, &f->deps, link) {
 			if (build_dir (&b, sc->parent, dep->path, new_prefix) != 0) {
 				ec = 1;
 				if (!conterr) {
@@ -3544,11 +3538,11 @@ const struct path *path, *prefix;
 			parse_dir (sc, prefix);
 
 		pf = find_file (sc_dir (sc), path_to_str (path));
-		if (pf != NULL && pf->dhead != NULL) {
+		if (pf != NULL && !TAILQ_EMPTY (&pf->deps)) {
 			pmt = pf->mtime;
 			pmaxt = pf->mtime;
 			pnu = 0;
-			if (build_deps (sc, pf->dhead, prefix, &pmt, &pmaxt, &pnu) != 0)
+			if (build_deps (sc, &pf->deps, prefix, &pmt, &pmaxt, &pnu) != 0)
 				return 1;
 		}
 
@@ -3613,7 +3607,7 @@ struct scope *sc;
 
 	assert (sc_dir (sc) != NULL);
 
-	for (m = sc_dir (sc)->macros; m != NULL; m = m->next) {
+	SLIST_FOREACH (m, &sc_dir (sc)->macros, next) {
 		if (m->help == NULL)
 			continue;
 
@@ -3636,7 +3630,7 @@ struct scope *sc;
 	if (strcmp (p, ".") == 0)
 		p = NULL;
 
-	for (f = sc_dir (sc)->fhead; f != NULL; f = f->next) {
+	TAILQ_FOREACH (f, &sc_dir (sc)->files, link) {
 		if (f->help == NULL)
 			continue;
 
@@ -3654,7 +3648,7 @@ struct scope *sc;
 	if (!verbose)
 		return;
 
-	for (sub = sc_dir (sc)->subdirs; sub != NULL; sub = sub->next) {
+	SLIST_FOREACH (sub, &sc_dir (sc)->subdirs, next) {
 		if (sub->type != SC_DIR)
 			continue;
 
@@ -3724,7 +3718,7 @@ struct scope *sc;
 	if (sc_dir (sc)->default_file != NULL)
 		printf (".DEFAULT: %s\n", sc_dir (sc)->default_file);
 
-	for (m = sc_dir (sc)->macros; m != NULL; m = m->next) {
+	SLIST_FOREACH (m, &sc_dir (sc)->macros, next) {
 		if (m->help != NULL)
 			printf ("\n## %s\n", m->help);
 		printf ("%s %s= %s\n", m->name, m->prepend != NULL ? "+" : "", m->value);
@@ -3732,15 +3726,15 @@ struct scope *sc;
 
 	printf ("\n");
 
-	for (f = sc_dir (sc)->fhead; f != NULL; f = f->next) {
+	TAILQ_FOREACH (f, &sc_dir (sc)->files, link) {
 		if (f->help != NULL)
 			printf ("## %s\n", f->help);
 		printf ("%s:", f->name);
-	
-		for (dep = f->dhead; dep != NULL; dep = dep->next)
+
+		TAILQ_FOREACH (dep, &f->deps, link)
 			printf (" %s", path_to_str (dep->path));
 		if (f->inf != NULL) {
-			for (dep = f->inf->dhead; dep != NULL; dep = dep->next)
+			TAILQ_FOREACH (dep, &f->inf->deps, link)
 				printf (" %s", path_to_str (dep->path));
 		}
 		printf ("\n");
@@ -3753,9 +3747,9 @@ struct scope *sc;
 		printf ("\n");
 	}
 
-	for (inf = sc_dir (sc)->infs; inf != NULL; inf = inf->next) {
+	SLIST_FOREACH (inf, &sc_dir (sc)->infs, next) {
 		printf ("%s%s:", inf->from, inf->to);
-		for (dep = inf->dhead; dep != NULL; dep = dep->next)
+		TAILQ_FOREACH (dep, &inf->deps, link)
 			printf (" %s", path_to_str (dep->path));
 		printf ("\n");
 		if (inf->rule->code != NULL) {
@@ -3764,8 +3758,8 @@ struct scope *sc;
 			printf ("\n");
 		}
 	}
-	
-	for (sub = sc_dir (sc)->subdirs; sub != NULL; sub = sub->next) {
+
+	SLIST_FOREACH (sub, &sc_dir (sc)->subdirs, next) {
 		switch (sub->type) {
 		case SC_DIR:
 			printf (".include %s, DIR", sub->name);
@@ -3780,7 +3774,7 @@ struct scope *sc;
 	}
 
 	if (verbose) {
-		for (sub = sc_dir (sc)->subdirs; sub != NULL; sub = sub->next) {
+		SLIST_FOREACH (sub, &sc_dir (sc)->subdirs, next) {
 			if (sub->type != SC_DIR)
 				continue;
 
@@ -3932,7 +3926,7 @@ char **argv;
 			/* lazy  */ 0,
 			/*prepend*/ NULL
 		);
-		m->next = globals;
+		m->next.sle_next = globals;
 		globals = m;
 
 		argv[i] = NULL;
