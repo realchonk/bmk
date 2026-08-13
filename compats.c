@@ -16,6 +16,9 @@
 
 #include "config.h"
 #include <sys/types.h>
+#if HAVE_SYS_WAIT_H
+# include <sys/wait.h>
+#endif
 #include <assert.h>
 #include <string.h>
 #if HAVE_STDLIB_H
@@ -37,6 +40,12 @@
 # else
 #  define PATH_MAX 256
 # endif
+#endif
+
+#if HAVE_UNION_WAIT
+typedef union wait mk_wait_t;
+#else
+typedef int mk_wait_t;
 #endif
 
 #if __STDC__ || HAVE_VOID_PTR
@@ -424,5 +433,23 @@ end:
 	if (endptr)
 		*endptr = s;
 	return sign * x;
+}
+#endif
+
+#ifndef HAVE_WAITPID
+pid_t waitpid (pid, wstatus, options)
+pid_t		 pid;
+mk_wait_t	*wstatus;
+int		 options;
+{
+	pid_t wpid;
+	(void)options;
+
+	wpid = wait (wstatus);
+	if (wpid < 0 || wpid == pid)
+		return wpid;
+
+	fprintf (stderr, "mk: error: waitpid(): unexpected child returned, expected=%d, returned=%d\n", pid, wpid);
+	exit (1);
 }
 #endif

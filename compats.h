@@ -52,6 +52,10 @@ extern char *strdup ();
 extern char *strsep ();
 #endif
 
+#ifndef HAVE_WAITPID
+extern pid_t waitpid ();
+#endif
+
 #ifndef HAVE_TIMESPEC
 struct timespec {
 	time_t tv_sec;

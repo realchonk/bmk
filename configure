@@ -379,6 +379,7 @@ strdup
 strerror
 strsep
 strtol
+waitpid
 '
 
 # tcc needs -static, otherwise linking will falsly succeed

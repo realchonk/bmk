@@ -1637,7 +1637,7 @@ const char		*cmd;
 				str_putc (&data, buf[i]);
 		}
 		close (pipefd[0]);
-		if (wait (&ws) != pid)
+		if (waitpid (pid, &ws, 0) != pid)
 			err (1, "wait()");
 		free (shell);
 		free (args[2]);
@@ -1715,7 +1715,7 @@ struct expand_ctx *ctx;
 		err (127, "exec('%s')", ecmd);
 	} else {
 		free (shell);
-		if (wait (&ws) != pid) {
+		if (waitpid (pid, &ws, 0) != pid) {
 			str_free (&fullrule);
 			free (ecmd);
 			warn ("wait()");
