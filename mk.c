@@ -3307,11 +3307,17 @@ const struct path *prefix;
 				errx (1, "%s: nothing to build", sc_path_str (sc));
 		}
 
-		if (f->built) {
+		switch (f->state) {
+		case FILE_PENDING:
+			f->state = FILE_BUSY;
+			break;
+		case FILE_BUSY:
+			errx (1, "%s: target '%s' is already being built. Circular dependency?", sc_path_str (sc), name);
+			break;
+		case FILE_DONE:
 			build_init (out, f->mtime, f, f->obj);
 			return f->err;
 		}
-		f->built = 1;
 
 		/* if this file has no rule, try to find an inference rule */
 		if (f->rule == NULL || *f->rule->code == NULL) {
@@ -3378,6 +3384,7 @@ const struct path *prefix;
 				return 1;
 			}
 		}
+		f->state = FILE_DONE;
 		ectx_free (&ctx);
 
 		/* update timestamp */

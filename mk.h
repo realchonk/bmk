@@ -48,6 +48,12 @@ struct dep {
 };
 TAILQ_HEAD(dep_list, dep);
 
+enum file_state {
+	FILE_PENDING,
+	FILE_BUSY,
+	FILE_DONE,
+};
+
 /*
  * struct file: doubly-linked, owned by struct directory (fhead/ftail).
  */
@@ -60,7 +66,7 @@ struct file {
 	struct timespec mtime;
 	char *help; /* optional */
 	int obj, err;
-	int built;
+	enum file_state state;
 };
 TAILQ_HEAD(file_list, file);
 
