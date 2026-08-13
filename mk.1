@@ -383,6 +383,14 @@ The opposite of
 .It Ic :J Ar separator
 Join all words into a single string, separated by
 .Ar separator .
+.It Ic :- Ns Ar default
+Expand to
+.Ar default
+if the macro value is empty; otherwise expand to the macro value unchanged.
+.It Ic :+ Ns Ar replace
+Expand to
+.Ar replace
+if the macro value is non-empty; otherwise expand to an empty string.
 .It Ic \&: Ns Ar old Ns = Ns Ar new
 Replace every occurrence of
 .Ar old

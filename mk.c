@@ -1260,6 +1260,8 @@ subst_words (v, sep, fn, arg)
 
 /* ${name}		just the value of macro called `name`
  * ${name:old=new}	replace `old` with `new`, must be the last modifier
+ * ${name:-default}	expand to `default`, if ${name} is empty
+ * ${name:+replace}	expand to `replace`, if ${name} is not empty
  * ${name:U}		replace each word with its upper case equivalent
  * ${name:L}		replace each word with its lower case equivalent
  * ${name:F}		try searching for files in either ${.OBJDIR} or source directory
@@ -1363,6 +1365,16 @@ struct expand_ctx *ctx;
 			replace_all_into (out, v, str_get (&old_str), str_get (&new_str));
 			str_free (&new_str);
 			goto ret;
+		} else if (str_get (&old_str)[0] == '+') {
+			if (*v != '\0') {
+				free (v);
+				v = strdup (str_get (&old_str) + 1);
+			}
+		} else if (str_get (&old_str)[0] == '-') {
+			if (*v == '\0') {
+				free (v);
+				v = strdup (str_get (&old_str) + 1);
+			}
 		} else if (strcmp (str_get (&old_str), "U") == 0) {
 			lu = mk_toupper;
 			goto do_LU;
