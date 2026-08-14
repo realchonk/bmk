@@ -29,7 +29,7 @@ struct scope {
 	char			*name;		/* optional */
 	struct scope		*parent;	/* optional */
 	char			*makefile;	/* required */
-	int			 created;	/* mkdir() */
+	bool			 created;	/* mkdir() */
 	union {
 		struct directory	*dir;	/* optional */
 		struct foreign		*foreign; /* required */
@@ -44,7 +44,7 @@ SLIST_HEAD(scope_list, scope);
 struct dep {
 	TAILQ_ENTRY(dep)	 link;
 	struct path		*path;
-	int			 obj;
+	bool			 obj;
 };
 TAILQ_HEAD(dep_list, dep);
 
@@ -65,8 +65,8 @@ struct file {
 	struct inference	*inf;	/* optional */
 	struct timespec		 mtime;
 	char			*help;	/* optional */
-	int			 obj;
-	int			 err;
+	bool			 obj;
+	bool			 err;
 	enum file_state		 state;
 };
 TAILQ_HEAD(file_list, file);
@@ -94,7 +94,7 @@ struct macro {
 	char			*name;		/* required */
 	char			*value;		/* required */
 	char			*help;		/* optional */
-	int			 lazy;		/* the value is not yet expanded */
+	bool			 lazy;		/* the value is not yet expanded */
 };
 SLIST_HEAD(macro_list, macro);
 
@@ -106,14 +106,14 @@ struct directory {
 	struct inference_list	 infs;		/* inference rules */
 	struct template_list	 templates;	/* list of templates */
 	char			*default_file;	/* default makefile name */
-	int			 done;		/* directory makefile is parsed */
+	bool			 done;		/* directory makefile is parsed */
 };
 
 struct cbuilt {
 	SLIST_ENTRY(cbuilt)	 next;
 	char			*name;
 	struct timespec		 t;
-	int			 obj;
+	bool			 obj;
 };
 SLIST_HEAD(cbuilt_list, cbuilt);
 

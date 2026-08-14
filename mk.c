@@ -85,7 +85,8 @@ typedef int mk_wait_t;
 extern int errno;
 
 static const char *cpath, *objdir = NULL;
-static int verbose = 0, cline = 0, conterr = 0;
+static int verbose = 0, cline = 0;
+static bool conterr = false;
 static const struct timespec time_zero;
 static FILE *timings_file = NULL;
 
@@ -112,7 +113,7 @@ static struct macro m_shell = {
 	FIELD (name, "SHELL"),
 	FIELD (value, SHELL),
 	FIELD (help, NULL),
-	FIELD (lazy, 0),
+	FIELD (lazy, false),
 }, m_make = {
 	FIELD (next, {&m_shell}),
 	FIELD (enext, {NULL}),
@@ -120,7 +121,7 @@ static struct macro m_shell = {
 	FIELD (name, "MAKE"),
 	FIELD (value, NULL),
 	FIELD (help, NULL),
-	FIELD (lazy, 0),
+	FIELD (lazy, false),
 }, m_dmake = {
 	FIELD (next, {&m_make}),
 	FIELD (enext, {NULL}),
@@ -128,7 +129,7 @@ static struct macro m_shell = {
 	FIELD (name, ".MAKE"),
 	FIELD (value, NULL),
 	FIELD (help, NULL),
-	FIELD (lazy, 0),
+	FIELD (lazy, false),
 }, m_makeflags = {
 	FIELD (next, {&m_dmake}),
 	FIELD (enext, {NULL}),
@@ -136,7 +137,7 @@ static struct macro m_shell = {
 	FIELD (name, "MAKEFLAGS"),
 	FIELD (value, NULL),
 	FIELD (help, NULL),
-	FIELD (lazy, 0),
+	FIELD (lazy, false),
 }, m_dmakeflags = {
 	FIELD (next, {&m_makeflags}),
 	FIELD (enext, {NULL}),
@@ -144,7 +145,7 @@ static struct macro m_shell = {
 	FIELD (name, ".MAKEFLAGS"),
 	FIELD (value, NULL),
 	FIELD (help, NULL),
-	FIELD (lazy, 0),
+	FIELD (lazy, false),
 };
 
 /*
@@ -568,8 +569,8 @@ const struct scope *sc;
 /* OTHER MISC */
 
 struct filetime {
-	struct timespec t;
-	int obj;
+	struct timespec	t;
+	bool		obj;
 };
 
 #if HAVE_STAT_MTIM
@@ -595,7 +596,7 @@ const char *name;
 
 	if (lstat (path, &st) == 0) {
 		stat_get_mtime (out->t, st);
-		out->obj = 0;
+		out->obj = false;
 		if (verbose >= 2)
 			printf ("found\n");
 		return 0;
@@ -612,7 +613,7 @@ const char *name;
 
 	if (lstat (path, &st) == 0) {
 		stat_get_mtime (out->t, st);
-		out->obj = 1;
+		out->obj = true;
 		if (verbose >= 2)
 			printf ("found in obj\n");
 		return 0;
@@ -620,7 +621,7 @@ const char *name;
 
 enoent:
 	out->t = time_zero;
-	out->obj = 0;
+	out->obj = false;
 	if (verbose >= 2)
 		printf ("not found\n");
 	return -1;
@@ -2072,7 +2073,7 @@ const char *name;
 	sub->name = strdup (name);
 	sub->parent = parent;
 	sub->makefile = NULL;
-	sub->created = 0;
+	sub->created = false;
 	SLIST_INSERT_HEAD (&pdir->subdirs, sub, next);
 
 	return sub;
@@ -2080,8 +2081,9 @@ const char *name;
 
 struct macro *
 new_macro (name, value, help, lazy, prepend)
-char *name, *value, *help;
-struct macro *prepend;
+char		*name, *value, *help;
+struct macro	*prepend;
+bool		 lazy;
 {
 	struct macro *m;
 	const char *s;
@@ -2113,11 +2115,12 @@ struct macro *prepend;
 
 struct file *
 new_file (name, rule, time, deps, help, inf, obj)
-char *name, *help;
-struct rule *rule;
-struct timespec time;
-struct dep_list *deps;
-struct inference *inf;
+char			*name, *help;
+struct rule		*rule;
+struct timespec		 time;
+struct dep_list		*deps;
+struct inference	*inf;
+bool			 obj;
 {
 	struct file *f;
 
@@ -2135,7 +2138,7 @@ struct inference *inf;
 	f->help = help;
 	f->inf = inf;
 	f->obj = obj;
-	f->err = 0;
+	f->err = false;
 
 	return f;
 }
@@ -2221,10 +2224,10 @@ struct dep *dep;
 
 void
 foreign_remember (sc, name, t, obj)
-struct scope *sc;
-const char *name;
-struct timespec t;
-int obj;
+struct scope	*sc;
+const char	*name;
+struct timespec	 t;
+bool		 obj;
 {
 	struct cbuilt *b;
 
@@ -2545,17 +2548,17 @@ char *s, *t, *help;
 
 void
 parse_assign (sc, dir, s, t, help)
-struct scope *sc;
-const struct path *dir;
-char *s, *t, *help;
+struct scope		*sc;
+const struct path	*dir;
+char			*s, *t, *help;
 {
 	struct macro *m, *prepend = NULL;
 	char *value;
-	int lazy;
+	bool lazy;
 
 	if (t[-1] == '!') {
 		t[-1] = '\0';
-		lazy = 0;
+		lazy = false;
 		value = evalcom (sc, dir, trim (t + 1));
 	} else if (t[-1] == '?') {
 		/* handle both `?=` and `??=` */
@@ -2577,22 +2580,22 @@ char *s, *t, *help;
 			m = find_macro (sc, trim (s));
 			value = m != NULL ? m->value : strdup (trim (t + 1));
 		}
-		lazy = 1;
+		lazy = true;
 	} else if (t[-1] == ':') {
 		/* handle both `:=` and `::=` */
 		if (s == (t - 1))
 			errx (1, "why are you doing this to me Davids, again?");
 		t[t[-2] == ':' ? -2 : -1] = '\0';
 		value = expand (sc, dir, trim (t + 1), NULL);
-		lazy = 0;
+		lazy = false;
 	} else if (t[-1] == '+') {
 		t[-1] = '\0';
 		value = strdup (trim (t + 1));
 		prepend = find_macro (sc, trim (s));
-		lazy = 1;
+		lazy = true;
 	} else {
 		value = strdup (trim (t + 1));
-		lazy = 1;
+		lazy = true;
 	}
 
 	m = new_macro (
@@ -2755,7 +2758,7 @@ FILE *file;
 			}
 			oldcline = cline;
 			parse (sc, dir, u);
-			sc_dir (sc)->done = 0;
+			sc_dir (sc)->done = false;
 			cline = oldcline;
 			if (u != t)
 				free (u);
@@ -2775,7 +2778,7 @@ FILE *file;
 			if (access (u, R_OK) == 0)
 				parse (sc, dir, u);
 
-			sc_dir (sc)->done = 0;
+			sc_dir (sc)->done = false;
 
 			if (u != t)
 				free (u);
@@ -2932,7 +2935,7 @@ char *path;
 		SLIST_INIT (&dirx->emacros);
 		SLIST_INIT (&dirx->infs);
 		SLIST_INIT (&dirx->templates);
-		dirx->done = 0;
+		dirx->done = false;
 		sc->inner.dir = dirx;
 		return;
 	}
@@ -2945,14 +2948,14 @@ char *path;
 		SLIST_INIT (&dirx->emacros);
 		SLIST_INIT (&dirx->infs);
 		SLIST_INIT (&dirx->templates);
-		dirx->done = 0;
+		dirx->done = false;
 		sc->inner.dir = dirx;
 	} else if (sc_dir (sc)->done) {
 		errx (1, "%s: parsing this file again?", path);
 	}
 
 	do_parse (sc, dir, path, file);
-	sc_dir (sc)->done = 1;
+	sc_dir (sc)->done = true;
 
 	fclose (file);
 }
@@ -3083,7 +3086,7 @@ const char *name;
 			/* deps */ &ideps,
 			/* help */ NULL,
 			/* inf  */ inf,
-			/* obj  */ 0
+			/* obj  */ false
 		);
 	}
 	dir_add_file (sc_dir (sc), f);
@@ -3183,16 +3186,17 @@ const char *name;
 /* BUILDING */
 
 struct build {
-	struct timespec t;
-	struct file *f;
-	int obj;
+	struct timespec	 t;
+	struct file	*f;
+	bool		 obj;
 };
 
 void
 build_init (out, t, f, obj)
-struct build *out;
-struct timespec t;
-struct file *f;
+struct build	*out;
+struct timespec	 t;
+struct file	*f;
+bool		 obj;
 {
 	out->t = t;
 	out->f = f;
@@ -3264,7 +3268,7 @@ const struct path *prefix;
 
 	if (!sc->created) {
 		sc_mkdir_p (sc);
-		sc->created = 1;
+		sc->created = true;
 	}
 
 	switch (sc->type) {
@@ -3345,7 +3349,7 @@ const struct path *prefix;
 
 		/* build dependencies and record timestamps */
 		if (build_deps (sc, &f->deps, prefix, &f->mtime, &maxt, &needs_update) != 0) {
-			f->err = 1;
+			f->err = true;
 			if (!conterr)
 				return 1;
 		}
@@ -3353,7 +3357,7 @@ const struct path *prefix;
 		/* build dependencies from inference rule */
 		if (f->inf != NULL) {
 			if (build_deps (sc, &f->inf->deps, prefix, &f->mtime, &maxt, &needs_update) != 0) {
-				f->err = 1;
+				f->err = true;
 				if (!conterr)
 					return 1;
 			}
@@ -3380,7 +3384,7 @@ const struct path *prefix;
 		for (; *s != NULL; ++s) {
 			if ((rc = runcom (sc, prefix, *s, &ctx, name)) != 0) {
 				fprintf (stderr, "%s: command failed with %d: %s\n", sc_path_str (sc), rc, *s);
-				f->err = 1;
+				f->err = true;
 				return 1;
 			}
 		}
@@ -3466,7 +3470,7 @@ const struct path *prefix;
 			if (name != NULL && get_mtime (&ft, sc, prefix, name) == 0) {
 				build_init (out, ft.t, NULL, ft.obj);
 			} else {
-				build_init (out, time_zero, NULL, 0);
+				build_init (out, time_zero, NULL, false);
 			}
 			foreign_remember (sc, name, out->t, out->obj);
 			free (scoped_rule);
@@ -3514,7 +3518,7 @@ const struct path *prefix;
 		if (name != NULL && get_mtime (&ft, sc, prefix, name) == 0) {
 			build_init (out, ft.t, NULL, ft.obj);
 		} else {
-			build_init (out, now (), NULL, 0);
+			build_init (out, now (), NULL, false);
 		}
 		foreign_remember (sc, name, out->t, out->obj);
 		free (scoped_rule);
@@ -3591,7 +3595,7 @@ const struct path *path, *prefix;
 				errx (1, "%s: no such file: %s",
 				    sc_path_str (sc), path[0].name);
 			stat_get_mtime (mt, st);
-			build_init (out, mt, NULL, 0);
+			build_init (out, mt, NULL, false);
 
 			if (full_path != new_prefix)
 				free (full_path);
@@ -3885,10 +3889,10 @@ char **argv;
 			odir = optarg;
 			break;
 		case 'k':
-			conterr = 1;
+			conterr = true;
 			break;
 		case 'S':
-			conterr = 0;
+			conterr = false;
 			break;
 		case 't':
 			tfile = optarg;
@@ -3941,7 +3945,7 @@ char **argv;
 			/* name  */ trim (argv[i]),
 			/* value */ trim (s + 1),
 			/* help  */ NULL,
-			/* lazy  */ 0,
+			/* lazy  */ false,
 			/*prepend*/ NULL
 		);
 		m->next.sle_next = globals;
