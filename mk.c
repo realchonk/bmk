@@ -2128,10 +2128,9 @@ bool			 obj;
 
 	f = new (struct file);
 	/* TAILQ_ENTRY is zeroed by calloc; initialise the embedded head */
+	TAILQ_INIT (&f->deps);
 	if (deps != NULL)
-		f->deps = *deps;
-	else
-		TAILQ_INIT (&f->deps);
+		TAILQ_CONCAT (&f->deps, deps, link);
 	f->name = name;
 	f->rule = rule;
 	f->mtime = time;
@@ -2467,7 +2466,8 @@ char *s, *t, *help;
 		p = strchr (u + 1, '.');
 		inf = new (struct inference);
 		inf->rule = r;
-		inf->deps = deps;
+		TAILQ_INIT (&inf->deps);
+		TAILQ_CONCAT (&inf->deps, &deps, link);
 
 		if (p != NULL) {
 			*p = '\0';
