@@ -3331,25 +3331,29 @@ const struct path *prefix;
 			if (inf != NULL) {
 				/* instantiate inference rule */
 				inf_inst_file (f, inf);
-			} else if (f->rule == NULL) {
-				if (tv_cmp (&f->mtime, &time_zero) > 0) {
-					build_init (out, f->mtime, f, f->obj);
-					return 0;
-				} else {
-					errx (1, "%s: no rule to build: %s", sc_path_str (sc), name);
-				}
+		} else if (f->rule == NULL) {
+			if (tv_cmp (&f->mtime, &time_zero) > 0) {
+				f->state = FILE_DONE;
+				build_init (out, f->mtime, f, f->obj);
+				return 0;
+			} else {
+				errx (1, "%s: no rule to build: %s", sc_path_str (sc), name);
 			}
+		}
 		}
 
 		needs_update = (tv_cmp (&f->mtime, &time_zero) <= 0);
 		maxt = f->mtime;
 
-		if (f->err)
+		if (f->err) {
+			f->state = FILE_DONE;
 			return 1;
+		}
 
 		/* build dependencies and record timestamps */
 		if (build_deps (sc, &f->deps, prefix, &f->mtime, &maxt, &needs_update) != 0) {
 			f->err = true;
+			f->state = FILE_DONE;
 			if (!conterr)
 				return 1;
 		}
@@ -3358,23 +3362,28 @@ const struct path *prefix;
 		if (f->inf != NULL) {
 			if (build_deps (sc, &f->inf->deps, prefix, &f->mtime, &maxt, &needs_update) != 0) {
 				f->err = true;
+				f->state = FILE_DONE;
 				if (!conterr)
 					return 1;
 			}
 		}
 
 		if (!needs_update) {
+			f->state = FILE_DONE;
 			build_init (out, f->mtime, f, f->obj);
 			return 0;
 		}
 
-		if (f->err)
+		if (f->err) {
+			f->state = FILE_DONE;
 			return 1;
+		}
 
 		s = f->rule->code;
 
 		/* rule is a "sum" rule, so doesn't need to be built */
 		if (s == NULL || *s == NULL) {
+			f->state = FILE_DONE;
 			build_init (out, maxt, f, f->obj);
 			return 0;
 		}
@@ -3385,6 +3394,7 @@ const struct path *prefix;
 			if ((rc = runcom (sc, prefix, *s, &ctx, name)) != 0) {
 				fprintf (stderr, "%s: command failed with %d: %s\n", sc_path_str (sc), rc, *s);
 				f->err = true;
+				f->state = FILE_DONE;
 				return 1;
 			}
 		}
